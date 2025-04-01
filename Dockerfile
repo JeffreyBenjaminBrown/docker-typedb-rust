@@ -57,20 +57,15 @@ RUN apt install -y build-essential
 ### Interface
 ###
 
-RUN useradd -u 1001 -g users user  && \
-    mkdir               /home/user && \
-    chown -R user:users /home/user && \
-    chmod -R 777        /home/user
-
-RUN chmod -R        777 /opt/typedb && \
-    chown -R user:users /opt/typedb
+RUN chmod -R        777   /opt/typedb && \
+    chown -R ubuntu:users /opt/typedb
 
 RUN mkdir -p /usr/local/cargo/registry         && \
-    chown -R user:users /usr/local/cargo/registry \
-                        /usr/local/cargo/bin   && \
+    chown -R ubuntu:users /usr/local/cargo/registry \
+                          /usr/local/cargo/bin   && \
     chmod -R 777 /usr/local/cargo/registry
 
-USER user
+USER ubuntu
 
 EXPOSE 1729
 CMD ["/bin/bash"]
