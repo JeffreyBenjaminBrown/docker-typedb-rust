@@ -30,14 +30,14 @@ RUN apt install -y typedb
 ###
 
 RUN apt install -y curl
-RUN curl --proto '=https' --tlsv1.2 -sSf       \
-         https://sh.rustup.rs | sh -s -- -y && \
-    . "$HOME/.cargo/env"
 
 RUN curl --proto '=https' --tlsv1.2 -sSf                     \
       https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
     cp -r /root/.cargo /usr/local/cargo                   && \
     cp -r /root/.rustup /usr/local/rustup
+
+RUN chown -R ubuntu:users /usr/local/cargo \
+                          /usr/local/rustup
 
 # Set Rust environment variables globally
 ENV PATH="/usr/local/cargo/bin:${PATH}"
@@ -50,7 +50,12 @@ ENV CARGO_HOME="/usr/local/cargo"
 ### but that would make building the container slower now.
 ###
 
+RUN apt update  -y --fix-missing && \
+    apt upgrade -y
+
 RUN apt install -y build-essential
+RUN apt install -y pkg-config
+RUN apt install -y ca-certificates
 
 
 ###
@@ -60,10 +65,10 @@ RUN apt install -y build-essential
 RUN chmod -R        777   /opt/typedb && \
     chown -R ubuntu:users /opt/typedb
 
-RUN mkdir -p /usr/local/cargo/registry         && \
-    chown -R ubuntu:users /usr/local/cargo/registry \
-                          /usr/local/cargo/bin   && \
-    chmod -R 777 /usr/local/cargo/registry
+# TODO: This could be merged with something earlier,
+# when I have time for a longer docker build.
+RUN mkdir -p              /usr/local/cargo/git/db && \
+    chown -R ubuntu:users /usr/local/cargo/git/db
 
 USER ubuntu
 
