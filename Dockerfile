@@ -56,7 +56,7 @@ RUN apt update  -y --fix-missing && \
 RUN apt install -y build-essential
 RUN apt install -y pkg-config
 RUN apt install -y ca-certificates
-
+RUN apt install -y libssl-dev
 
 ###
 ### Interface

@@ -11,7 +11,7 @@ echo $(date)
 docker build -t jeffreybbrown/hode:new .
 echo $(date)
 
-DOCKER_IMAGE_SUFFIX="2025-03-13.tantivy"
+DOCKER_IMAGE_SUFFIX="2025-03-13.openssl"
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:latest
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker rmi jeffreybbrown/hode:new
