@@ -1,43 +1,37 @@
 FROM ubuntu:24.10
 
-RUN echo "2025 03 13"
+RUN echo "2025 04 29" # Forces rebuilding from here.
 RUN apt update  -y --fix-missing && \
     apt upgrade -y
 
 
 ###
-### For the TypeDB server
-###
-
-RUN apt install -y \
-  software-properties-common apt-transport-https gpg
-RUN gpg --keyserver \
-  hkp://keyserver.ubuntu.com:80 --recv-key 17507562824cfdcc
-RUN gpg --export 17507562824cfdcc \
-  | tee /etc/apt/trusted.gpg.d/typedb.gpg \
-  > /dev/null
-RUN echo "deb https://repo.typedb.com/public/public-release/deb/ubuntu trusty main" \
-  | tee /etc/apt/sources.list.d/typedb.list \
-  > /dev/null
-RUN apt update  -y --fix-missing && \
-    apt upgrade -y
-RUN apt install -y default-jre
-RUN apt install -y typedb
-
-
-###
-### The Rust client for TypeDB
+### requirements
 ###
 
 RUN apt install -y curl
+RUN apt install -y gpg
+RUN apt install -y pkg-config
+RUN apt install -y ca-certificates
+RUN apt install -y libssl-dev
+RUN apt install -y apt-transport-https
+RUN apt install -y software-properties-common
+RUN apt install -y build-essential
+RUN apt install -y default-jre
+
+
+###
+### configure Rust
+###
 
 RUN curl --proto '=https' --tlsv1.2 -sSf                     \
       https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
     cp -r /root/.cargo /usr/local/cargo                   && \
     cp -r /root/.rustup /usr/local/rustup
 
-RUN chown -R ubuntu:users /usr/local/cargo \
-                          /usr/local/rustup
+# This `chown` is so slow that I have divided it in two.
+RUN chown -R ubuntu:users /usr/local/cargo
+RUN chown -R ubuntu:users /usr/local/rustup
 
 # Set Rust environment variables globally
 ENV PATH="/usr/local/cargo/bin:${PATH}"
@@ -46,17 +40,16 @@ ENV CARGO_HOME="/usr/local/cargo"
 
 
 ###
-### Stragglers. It would be more natural to install these earlier,
-### but that would make building the container slower now.
+### TypeDB
 ###
 
-RUN apt update  -y --fix-missing && \
-    apt upgrade -y
+RUN apt install -y software-properties-common apt-transport-https gpg
+RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-key 17507562824cfdcc
+RUN gpg --export 17507562824cfdcc | tee /etc/apt/trusted.gpg.d/typedb.gpg > /dev/null
+RUN echo "deb https://repo.typedb.com/public/public-release/deb/ubuntu trusty main" | tee /etc/apt/sources.list.d/typedb.list > /dev/null
+RUN apt update -y
+RUN apt install -y typedb
 
-RUN apt install -y build-essential
-RUN apt install -y pkg-config
-RUN apt install -y ca-certificates
-RUN apt install -y libssl-dev
 
 ###
 ### Interface

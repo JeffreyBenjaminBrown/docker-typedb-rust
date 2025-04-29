@@ -1,7 +1,12 @@
 exit # This is not a script, just snippets.
 
 CONTAINER_NAME=rust-typedb
-
+docker run --name $CONTAINER_NAME -it -d    \
+  -v /home/jeff/hodal/skg-copy:/home/ubuntu \
+  -p 1731:1731                              \
+  --platform linux/amd64                    \
+  --user 1000:1000                          \
+  jeffreybbrown/hode:latest
 docker exec -it $CONTAINER_NAME bash
 
 docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME
@@ -11,17 +16,10 @@ echo $(date)
 docker build -t jeffreybbrown/hode:new .
 echo $(date)
 
-DOCKER_IMAGE_SUFFIX="2025-03-13.openssl"
+DOCKER_IMAGE_SUFFIX="2025-04-29.from-scratch"
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:latest
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker rmi jeffreybbrown/hode:new
-
-docker run --name $CONTAINER_NAME -it -d        \
-  -v /home/jeff/hodal/title-search:/home/ubuntu \
-  -p 1729:1729                                  \
-  --platform linux/amd64                        \
-  --user 1000:1000                              \
-  jeffreybbrown/hode:latest
 
 docker push jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker push jeffreybbrown/hode:latest
