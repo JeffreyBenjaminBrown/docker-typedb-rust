@@ -16,7 +16,7 @@ echo $(date)
 docker build -t jeffreybbrown/hode:new .
 echo $(date)
 
-DOCKER_IMAGE_SUFFIX="2025-04-29.from-scratch"
+DOCKER_IMAGE_SUFFIX="2025-09-01.with-claude"
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:latest
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker rmi jeffreybbrown/hode:new

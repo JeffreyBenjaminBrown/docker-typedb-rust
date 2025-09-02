@@ -6,7 +6,7 @@ RUN apt update  -y --fix-missing && \
 
 
 ###
-### requirements
+### requirements for Rust and/or TypeDB
 ###
 
 RUN apt install -y curl
@@ -49,6 +49,21 @@ RUN gpg --export 17507562824cfdcc | tee /etc/apt/trusted.gpg.d/typedb.gpg > /dev
 RUN echo "deb https://repo.typedb.com/public/public-release/deb/ubuntu trusty main" | tee /etc/apt/sources.list.d/typedb.list > /dev/null
 RUN apt update -y
 RUN apt install -y typedb
+
+
+
+###
+### Claude Code
+###   see https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
+###
+
+RUN apt install -y python3 python3-pip
+RUN apt install -y python3-venv
+RUN apt install -y git
+RUN apt install -y nodejs
+RUN apt install -y ripgrep
+RUN apt install -y npm
+RUN npm install -g @anthropic-ai/claude-code
 
 
 ###
