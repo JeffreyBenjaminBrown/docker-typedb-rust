@@ -78,6 +78,8 @@ RUN chmod -R        777   /opt/typedb && \
 RUN mkdir -p              /usr/local/cargo/git/db && \
     chown -R ubuntu:users /usr/local/cargo/git/db
 
+RUN apt install -y emacs
+
 USER ubuntu
 
 EXPOSE 1729

@@ -6,7 +6,7 @@ docker run --name $CONTAINER_NAME -it -d    \
   -p 1731:1731                              \
   --platform linux/amd64                    \
   --user 1000:1000                          \
-  jeffreybbrown/hode:latest
+  jeffreybbrown/hode:new # PITFALL: New? Latest?
 docker exec -it $CONTAINER_NAME bash
 
 docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME
