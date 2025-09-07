@@ -80,6 +80,27 @@ RUN mkdir -p              /usr/local/cargo/git/db && \
 
 RUN apt install -y emacs
 
+# 'aider' is an open source model-agnostic AI CLI agent.
+# PITFALL: switches user twice
+RUN apt install -y pipx # TODO: Group with other Python installsE
+USER ubuntu
+ENV PATH="/home/ubuntu/.local/bin:${PATH}"
+RUN pipx install aider-install # for global installs
+RUN aider-install
+USER root
+
+
+###
+### TODO : Add data science
+###
+
+# See survey-1
+
+###
+### RUN
+###
+
+RUN mkdir /home/ubuntu/host/
 USER ubuntu
 
 EXPOSE 1729
