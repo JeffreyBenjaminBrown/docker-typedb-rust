@@ -1,5 +1,14 @@
 FROM ubuntu:24.10
 
+# Ensure 'users' group (gid 100)
+# and 'ubuntu' user (uid 1000) exist early.
+# PITFALL: Those numbers should match what 'id' shows on host.
+RUN groupadd -g 100 users || true
+# Create ubuntu user only if it doesn't already exist in base image
+RUN id -u ubuntu >/dev/null 2>&1 \
+  || useradd -m -u 1000 -g users -s /bin/bash ubuntu
+RUN mkdir -p /home/ubuntu/host && chown -R 1000:100 /home/ubuntu
+
 RUN echo "2025 04 29" # Forces rebuilding from here.
 RUN apt update  -y --fix-missing && \
     apt upgrade -y
@@ -32,6 +41,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf                     \
 # This `chown` is so slow that I have divided it in two.
 RUN chown -R ubuntu:users /usr/local/cargo
 RUN chown -R ubuntu:users /usr/local/rustup
+RUN mkdir -p              /usr/local/cargo/git/db && \
+    chown -R ubuntu:users /usr/local/cargo/git/db
 
 # Set Rust environment variables globally
 ENV PATH="/usr/local/cargo/bin:${PATH}"
@@ -59,6 +70,7 @@ RUN apt install -y typedb
 
 RUN apt install -y python3 python3-pip
 RUN apt install -y python3-venv
+RUN apt install -y pipx
 RUN apt install -y git
 RUN apt install -y nodejs
 RUN apt install -y ripgrep
@@ -73,16 +85,10 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN chmod -R        777   /opt/typedb && \
     chown -R ubuntu:users /opt/typedb
 
-# TODO: This could be merged with something earlier,
-# when I have time for a longer docker build.
-RUN mkdir -p              /usr/local/cargo/git/db && \
-    chown -R ubuntu:users /usr/local/cargo/git/db
-
 RUN apt install -y emacs
 
 # 'aider' is an open source model-agnostic AI CLI agent.
 # PITFALL: switches user twice
-RUN apt install -y pipx # TODO: Group with other Python installsE
 USER ubuntu
 ENV PATH="/home/ubuntu/.local/bin:${PATH}"
 RUN pipx install aider-install # for global installs
@@ -91,16 +97,10 @@ USER root
 
 
 ###
-### TODO : Add data science
-###
-
-# See survey-1
-
-###
 ### RUN
 ###
 
-RUN mkdir /home/ubuntu/host/
+#RUN mkdir /home/ubuntu/host/
 USER ubuntu
 
 EXPOSE 1729

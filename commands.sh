@@ -2,10 +2,10 @@ exit # This is not a script, just snippets.
 
 CONTAINER_NAME=rust-typedb
 docker run --name $CONTAINER_NAME -it -d         \
-  -v /home/jeff/hodal/skg-copy:/home/ubuntu/host \
+  -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host \
   -p 1731:1731                                   \
   --platform linux/amd64                         \
-  --user 1000:1000                               \
+  --user 1000:100                                \
   jeffreybbrown/hode:new # PITFALL: New? Latest?
 docker exec -it $CONTAINER_NAME bash
 
