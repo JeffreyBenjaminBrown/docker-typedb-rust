@@ -1,15 +1,19 @@
-FROM ubuntu:24.10
+FROM ubuntu:24.04
 
 # Ensure 'users' group (gid 100)
 # and 'ubuntu' user (uid 1000) exist early.
 # PITFALL: Those numbers should match what 'id' shows on host.
 RUN groupadd -g 100 users || true
+
 # Create ubuntu user only if it doesn't already exist in base image
 RUN id -u ubuntu >/dev/null 2>&1 \
   || useradd -m -u 1000 -g users -s /bin/bash ubuntu
+
 RUN mkdir -p /home/ubuntu/host && chown -R 1000:100 /home/ubuntu
 
-RUN echo "2025 04 29" # Forces rebuilding from here.
+# Force rebuilding from here.
+RUN echo "Today is 2025 10 23"
+
 RUN apt update  -y --fix-missing && \
     apt upgrade -y
 
@@ -60,12 +64,15 @@ RUN gpg --export 17507562824cfdcc | tee /etc/apt/trusted.gpg.d/typedb.gpg > /dev
 RUN echo "deb https://repo.typedb.com/public/public-release/deb/ubuntu trusty main" | tee /etc/apt/sources.list.d/typedb.list > /dev/null
 RUN apt update -y
 RUN apt install -y typedb
-
+RUN chmod -R        777   /opt/typedb && \
+    chown -R ubuntu:users /opt/typedb
+# See also 'cargo watch' installed as USER below.
 
 
 ###
-### Claude Code
-###   see https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
+### Claude Code and Codex
+###   Most of these are required by Claude Code; see
+###     https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
 ###
 
 RUN apt install -y python3 python3-pip
@@ -76,32 +83,44 @@ RUN apt install -y nodejs
 RUN apt install -y ripgrep
 RUN apt install -y npm
 RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @openai/codex
+
+
+###
+### More stuff I want
+###
+
+RUN apt install -y emacs
+RUN apt install -y sqlite3 ripgrep
 
 
 ###
 ### Interface
 ###
 
-RUN chmod -R        777   /opt/typedb && \
-    chown -R ubuntu:users /opt/typedb
+#RUN mkdir /home/ubuntu/host/
 
-RUN apt install -y emacs
-
-# 'aider' is an open source model-agnostic AI CLI agent.
-# PITFALL: switches user twice
+# PITFALL: switches user
 USER ubuntu
 ENV PATH="/home/ubuntu/.local/bin:${PATH}"
-RUN pipx install aider-install # for global installs
-RUN aider-install
+RUN cargo install cargo-watch
+
+
+###
+### For investigating Codex installation
+### TODO : Move this earlier when rebuilding from scratch.
+###
+
+# PITFALL: switches user twice
 USER root
+RUN apt install -y iproute2
+USER ubuntu
+RUN cargo install cargo-nextest
 
 
 ###
 ### RUN
 ###
-
-#RUN mkdir /home/ubuntu/host/
-USER ubuntu
 
 EXPOSE 1729
 CMD ["/bin/bash"]
