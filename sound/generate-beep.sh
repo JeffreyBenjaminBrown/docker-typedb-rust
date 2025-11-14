@@ -6,15 +6,15 @@ import math
 import struct
 
 duration = 0.2  # seconds
-base_frequency = 600  # Hz
+base_frequency = 800  # Hz
 sample_rate = 48000
 amplitude = 16
 
 # Just intonation intervals in semitones
 intervals = [-24, -12, -5,
-              0, 3.86, 7.02, 9.69,
+              0, 3.86, 7.02, 10.88,
               12, 14.04, 17.51, 20.41,
-              24, 25.105 ]
+              22.88, 24, 26.04, 26.97 ]
 intervals = (            intervals
   + [i + 25.105 for i in intervals]
   + [i + 15.86  for i in intervals]
@@ -25,7 +25,7 @@ pitch_shift_start = 0
 pitch_shift_end = 1/2
 
 def triangle_wave(frequency, t, sample_rate):
-  """Generate a triangle wave value at time t"""
+  """UNUSED for now. Generates a triangle wave value at time t."""
   period = sample_rate / frequency
   phase = (t % period) / period
   if phase < 0.5:
@@ -51,7 +51,12 @@ with wave.open('/tmp/beep.wav', 'w') as wav_file:
     for interval in intervals:
       total_interval = interval + current_pitch_shift
       frequency = base_frequency * (2 ** (total_interval / 12))
-      sample_value += triangle_wave(frequency, i, sample_rate)
+
+      # Volume scales inversely with frequency: doubling frequency halves volume
+      frequency_ratio = frequency / base_frequency
+      volume_scale = 1.0 / frequency_ratio
+
+      sample_value += volume_scale * math.sin(2 * math.pi * frequency * i / sample_rate)
 
     # Average the waves and scale to 16-bit range
     sample_value = sample_value / len(intervals)
