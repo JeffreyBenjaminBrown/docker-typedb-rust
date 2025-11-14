@@ -92,30 +92,23 @@ RUN npm install -g @openai/codex
 
 RUN apt install -y emacs
 RUN apt install -y sqlite3 ripgrep
+RUN apt install -y iproute2
+RUN apt install -y pipewire-audio-client-libraries pipewire-bin
 
 
 ###
 ### Interface
 ###
 
-#RUN mkdir /home/ubuntu/host/
-
 # PITFALL: switches user
 USER ubuntu
 ENV PATH="/home/ubuntu/.local/bin:${PATH}"
 RUN cargo install cargo-watch
-
-
-###
-### For investigating Codex installation
-### TODO : Move this earlier when rebuilding from scratch.
-###
-
-# PITFALL: switches user twice
-USER root
-RUN apt install -y iproute2
-USER ubuntu
 RUN cargo install cargo-nextest
+USER root
+RUN mkdir /home/sound/
+COPY sound /home/sound/
+USER ubuntu
 
 
 ###

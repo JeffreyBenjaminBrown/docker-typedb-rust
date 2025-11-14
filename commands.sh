@@ -3,6 +3,9 @@ exit # This is not a script, just snippets.
 CONTAINER_NAME=rust-typedb
 docker run --name $CONTAINER_NAME -it -d                   \
   -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host \
+  -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0   \
+  -e PIPEWIRE_RUNTIME_DIR=/run/user/1000                   \
+  --group-add $(getent group audio | cut -d: -f3)          \
   --network host                                           \
   --platform linux/amd64                                   \
   --user 1000:1000                                         \
@@ -20,7 +23,7 @@ echo $(date)
 docker build -t jeffreybbrown/hode:new .
 echo $(date)
 
-DOCKER_IMAGE_SUFFIX="codex"
+DOCKER_IMAGE_SUFFIX="sound"
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:latest
 docker tag jeffreybbrown/hode:new jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker rmi jeffreybbrown/hode:new
