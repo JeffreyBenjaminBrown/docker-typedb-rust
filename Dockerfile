@@ -107,7 +107,7 @@ RUN cargo install cargo-watch
 RUN cargo install cargo-nextest
 USER root
 RUN mkdir /home/sound/
-COPY sound /home/sound/
+COPY copy-when-rebuilding/sound /home/sound/
 USER ubuntu
 
 
