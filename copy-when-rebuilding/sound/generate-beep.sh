@@ -13,8 +13,8 @@ amplitude = 16
 # Just intonation intervals in semitones
 intervals = [-24, -12, -5,
               0, 3.86, 7.02, 10.88,
-              12, 14.04, 17.51, 20.41,
-              22.88, 24, 26.04, 26.97 ]
+              14.04, 17.51, 20.41,
+              22.88, 26.97 ]
 intervals = (            intervals
   + [i + 25.105 for i in intervals]
   + [i + 15.86  for i in intervals]
@@ -53,8 +53,7 @@ with wave.open('/tmp/beep.wav', 'w') as wav_file:
       frequency = base_frequency * (2 ** (total_interval / 12))
 
       # Volume scales inversely with frequency: doubling frequency halves volume
-      frequency_ratio = frequency / base_frequency
-      volume_scale = 1.0 / frequency_ratio
+      volume_scale = base_frequency / frequency
 
       sample_value += volume_scale * math.sin(2 * math.pi * frequency * i / sample_rate)
 
