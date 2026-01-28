@@ -104,10 +104,12 @@ RUN apt install -y pipewire-audio-client-libraries pipewire-bin
 USER ubuntu
 ENV PATH="/home/ubuntu/.local/bin:${PATH}"
 RUN cargo install cargo-watch
-RUN cargo install cargo-nextest
+RUN cargo install --locked cargo-nextest
 USER root
 RUN mkdir /home/sound/
 COPY copy-when-rebuilding/sound /home/sound/
+RUN apt install -y alsa-utils     # TODO ? group with pipewire insall
+RUN apt install -y libasound2-dev #      ? group with pipewire insall
 USER ubuntu
 
 
