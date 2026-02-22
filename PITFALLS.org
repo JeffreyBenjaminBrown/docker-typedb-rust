@@ -1,0 +1,3 @@
+* when editing the Dockerfile
+  put new code as far at the end as possible,
+  unless I've got a lot of time to rebuild in a prettier order
