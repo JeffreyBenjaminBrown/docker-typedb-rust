@@ -140,6 +140,7 @@ RUN cd /tmp && git clone --depth 1 --branch 1.2.6           \
   cd pipewire && meson setup build --prefix=/usr &&         \
   ninja -C build && ninja -C build install &&               \
   rm -rf /tmp/pipewire
+RUN apt install -y libportaudio2
 
 USER ubuntu
 
