@@ -142,6 +142,10 @@ RUN cd /tmp && git clone --depth 1 --branch 1.2.6           \
   rm -rf /tmp/pipewire
 RUN apt install -y libportaudio2
 
+# TODO: Move this upward the next time I rebuild everything.
+RUN apt install -y elpa-magit
+RUN claude update
+
 USER ubuntu
 
 
