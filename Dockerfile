@@ -70,26 +70,6 @@ RUN chmod -R        777   /opt/typedb && \
 
 
 ###
-### Neo4j
-###
-
-RUN apt install -y software-properties-common apt-transport-https gpg
-RUN curl -fsSL https://debian.neo4j.com/neotechnology.gpg.key \
-  | gpg --dearmor -o /etc/apt/trusted.gpg.d/neo4j.gpg
-RUN echo "deb https://debian.neo4j.com stable latest" \
-  | tee /etc/apt/sources.list.d/neo4j.list
-RUN apt update -y
-RUN apt install -y neo4j
-RUN chmod -R        777   /var/lib/neo4j && \
-    chown -R ubuntu:users /var/lib/neo4j
-RUN chmod -R        777   /var/log/neo4j && \
-    chown -R ubuntu:users /var/log/neo4j
-RUN chmod -R        777   /etc/neo4j && \
-    chown -R ubuntu:users /etc/neo4j
-# See also 'cargo watch' installed as USER below.
-
-
-###
 ### Claude Code and Codex
 ###   Most of these are required by Claude Code; see
 ###     https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
@@ -107,32 +87,14 @@ RUN npm install -g @openai/codex
 
 
 ###
-### More stuff I want
+### Sound
 ###
 
-RUN apt install -y emacs
-RUN apt install -y sqlite3 ripgrep
-RUN apt install -y iproute2
-RUN apt install -y pipewire-audio-client-libraries pipewire-bin
-
-
-###
-### Interface
-###
-
-# PITFALL: switches user
-USER ubuntu
-ENV PATH="/home/ubuntu/.local/bin:${PATH}"
-RUN cargo install cargo-watch
-RUN cargo install --locked cargo-nextest
-
-USER root
 RUN mkdir /home/sound/
 COPY copy-when-rebuilding/sound /home/sound/
 RUN apt install -y alsa-utils     # TODO ? group with pipewire insall
 RUN apt install -y libasound2-dev #      ? group with pipewire insall
-
-# for sound
+RUN apt install -y libasound2 dbus libglib2.0-0 libsndfile1 systemd
 RUN apt install -y meson ninja-build libspa-0.2-dev libsndfile1-dev \
   libdbus-1-dev libudev-dev libglib2.0-dev libasound2-dev
 RUN cd /tmp && git clone --depth 1 --branch 1.2.6           \
@@ -141,12 +103,29 @@ RUN cd /tmp && git clone --depth 1 --branch 1.2.6           \
   ninja -C build && ninja -C build install &&               \
   rm -rf /tmp/pipewire
 RUN apt install -y libportaudio2
+RUN apt install -y pipewire-audio-client-libraries pipewire-bin
 
-# TODO: Move this upward the next time I rebuild everything.
+
+###
+### Misc
+###
+
+RUN apt install -y emacs
 RUN apt install -y elpa-magit
-RUN claude update
+RUN apt install -y sqlite3 ripgrep
+RUN apt install -y iproute2
+
+
+###
+### Interface
+###
+
+# PITFALL: switches user here
 
 USER ubuntu
+ENV PATH="/home/ubuntu/.local/bin:${PATH}"
+RUN cargo install cargo-watch
+RUN cargo install --locked cargo-nextest
 
 
 ###
@@ -154,5 +133,4 @@ USER ubuntu
 ###
 
 EXPOSE 1729
-EXPOSE 7687
 CMD ["/bin/bash"]
