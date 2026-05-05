@@ -2,26 +2,12 @@
 
 let
   typedb  = pkgs.callPackage ./typedb.nix {};
-  codexCli = pkgs.stdenvNoCC.mkDerivation rec {
-    pname = "codex";
-    version = "0.121.0";
-
-    src = pkgs.fetchurl {
-      url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-x86_64-unknown-linux-musl.tar.gz";
-      hash = "sha256-J4xysD1OH2YbqCjBzPNuui+I2AdMcOPwMhHb+2MSc8Q=";
-    };
-
-    dontUnpack = true;
-
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      tar -xzf $src -C $out/bin
-      mv $out/bin/codex-x86_64-unknown-linux-musl $out/bin/codex
-      chmod +x $out/bin/codex
-      runHook postInstall
-    '';
-  };
+  pkgConfigPath = pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
+    pkgs.openssl
+    pkgs.zlib
+    pkgs.libgit2
+    pkgs.libssh2
+  ];
 
   # fakeNss only provides root+nobody. We run the container with --user 1000:1000,
   # so we supply a proper /etc/passwd + /etc/group that includes that uid.
@@ -46,6 +32,60 @@ let
     protocols: files
     services:  files
   '';
+  bashrcFile = pkgs.writeText "bashrc" ''
+    case $- in
+      *i*) ;;
+      *) return ;;
+    esac
+
+    if command -v update-ai-clis >/dev/null 2>&1; then
+      ai_cli_stamp=''${XDG_STATE_HOME:-$HOME/.local/state}/ai-cli-updates/last-success
+      ai_cli_lock=''${XDG_STATE_HOME:-$HOME/.local/state}/ai-cli-updates/lock
+      mkdir -p "$(dirname "$ai_cli_stamp")"
+
+      if [ ! -e "$ai_cli_stamp" ] || find "$ai_cli_stamp" -mtime +0 >/dev/null 2>&1; then
+        (
+          if mkdir "$ai_cli_lock" 2>/dev/null; then
+            trap 'rmdir "$ai_cli_lock"' EXIT
+            if update-ai-clis >/tmp/update-ai-clis.log 2>&1; then
+              touch "$ai_cli_stamp"
+            fi
+          fi
+        ) >/dev/null 2>&1 &
+      fi
+    fi
+
+    PS1='\w [\D{%F %T}]\n\$ '
+  '';
+  updateAiClis = pkgs.writeShellScriptBin "update-ai-clis" ''
+    set -eu
+
+    prefix="''${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
+    mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
+    npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest
+  '';
+  codexWrapper = pkgs.writeShellScriptBin "codex" ''
+    set -eu
+
+    prefix="''${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
+    real="$prefix/bin/codex"
+    if [ ! -x "$real" ]; then
+      echo "Bootstrapping Codex from npm into $prefix" >&2
+      update-ai-clis
+    fi
+    exec "$real" "$@"
+  '';
+  claudeWrapper = pkgs.writeShellScriptBin "claude" ''
+    set -eu
+
+    prefix="''${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
+    real="$prefix/bin/claude"
+    if [ ! -x "$real" ]; then
+      echo "Bootstrapping Claude Code from npm into $prefix" >&2
+      update-ai-clis
+    fi
+    exec "$real" "$@"
+  '';
 
   # Embed the contents of ./copy-when-rebuilding/sound under /home/sound.
   soundFiles = pkgs.runCommand "sound-files" {} ''
@@ -56,7 +96,7 @@ in
 
 pkgs.dockerTools.buildLayeredImage {
   name = "jeffreybbrown/hode";
-  tag  = "latest";
+  tag  = "untested";
 
   contents = (with pkgs; [
     # shell + core unix
@@ -99,9 +139,11 @@ pkgs.dockerTools.buildLayeredImage {
     portaudio
     systemd
 
-    # AI CLIs.
-    claude-code
-    codexCli
+    # AI CLI runtimes. The CLI packages themselves are installed into a
+    # writable prefix at runtime so they can be upgraded independently of nixpkgs.
+    updateAiClis
+    codexWrapper
+    claudeWrapper
 
     # Local files
     soundFiles
@@ -111,11 +153,13 @@ pkgs.dockerTools.buildLayeredImage {
   ]);
 
   extraCommands = ''
-    mkdir -p etc home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup tmp root var/empty var/lib/typedb opt/typedb
+    mkdir -p etc home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local tmp root var/empty var/lib/typedb opt/typedb
     cp ${passwdFile}   etc/passwd
     cp ${groupFile}    etc/group
     cp ${nsswitchConf} etc/nsswitch.conf
-    chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup
+    cp ${bashrcFile}   home/ubuntu/.bashrc
+    chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local
+    chmod 0644 home/ubuntu/.bashrc
 
     # TypeDB needs a writable install tree at runtime. Leaving it only in
     # /nix/store makes `typedb server` fail because it writes relative to
@@ -137,13 +181,15 @@ pkgs.dockerTools.buildLayeredImage {
     Cmd         = [ "${pkgs.bashInteractive}/bin/bash" ];
     WorkingDir  = "/home/ubuntu";
     Env = [
-      "PATH=/bin:/usr/bin"
+      "PATH=/home/ubuntu/.local/npm-global/bin:/bin:/usr/bin"
+      "PKG_CONFIG_PATH=${pkgConfigPath}"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "LANG=C.UTF-8"
       "LC_ALL=C.UTF-8"
       "HOME=/home/ubuntu"
       "USER=ubuntu"
+      "NPM_CONFIG_PREFIX=/home/ubuntu/.local/npm-global"
       "RUSTUP_HOME=/home/ubuntu/.rustup"
       "CARGO_HOME=/home/ubuntu/.cargo"
     ];
