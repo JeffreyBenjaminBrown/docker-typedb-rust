@@ -32,20 +32,23 @@ docker run --name $CONTAINER_NAME -it -d                       \
 nix-build docker.nix
 docker load < result
 echo "WARNING: Hold onto the result file. Because the container bind-mounts the host / nix/store, aggressive GC on the host can also break an already-loaded image at runtime if the required store paths are no longer rooted. Keeping result around, or adding a GC root for the built image closure, makes that safer."
-# The image loads as `jeffreybbrown/hode:latest`, thanks to the
+# The image loads as `jeffreybbrown/hode:untested`, thanks to the
 # pkgs.dockerTools.buildLayeredImage.name field in docker.nix
 
 ### Build the image (conventional, slow) ###
 ### ==================================== ###
 STARTING_AT=$(date)
 echo $(date)
-docker build -t jeffreybbrown/hode:new .
+docker build -t jeffreybbrown/hode:untested .
 echo $(date)
 
-### tag/push ###
-### ======== ###
+### tag/push -- PITFALL: only do this once it works ###
+### =============================================== ###
 DOCKER_IMAGE_SUFFIX="newer-typedb"
-docker tag jeffreybbrown/hode:latest jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
+docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
+docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
+docker rmi jeffreybbrown/hode:untested
+
 docker push jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker push jeffreybbrown/hode:latest
 
