@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -eu
+
+prefix="${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
+real="$prefix/bin/claude"
+if [ ! -x "$real" ]; then
+  echo "Bootstrapping Claude Code from npm into $prefix" >&2
+  update-ai-clis
+fi
+exec "$real" "$@"

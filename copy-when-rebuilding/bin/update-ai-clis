@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -eu
+
+prefix="${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
+mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
+npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest

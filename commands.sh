@@ -24,8 +24,8 @@ docker run --name $CONTAINER_NAME -it -d                       \
   # PITFALL: --ulimit rtprio/memlock are needed inside Docker; musnix
   #   settings on the host don't cross the container boundary.
 
-### Build the image (Nix, fast) ###
-### =========================== ###
+### Build the image ###
+### =============== ###
 # Produces ./result which is a .tar.gz Docker image archive.
 # First-time run will fail with the real TypeDB tarball hash — paste it
 # into typedb.nix (replacing lib.fakeHash) and rerun.
@@ -34,13 +34,6 @@ docker load < result
 echo "WARNING: Hold onto the result file. Because the container bind-mounts the host / nix/store, aggressive GC on the host can also break an already-loaded image at runtime if the required store paths are no longer rooted. Keeping result around, or adding a GC root for the built image closure, makes that safer."
 # The image loads as `jeffreybbrown/hode:untested`, thanks to the
 # pkgs.dockerTools.buildLayeredImage.name field in docker.nix
-
-### Build the image (conventional, slow) ###
-### ==================================== ###
-STARTING_AT=$(date)
-echo $(date)
-docker build -t jeffreybbrown/hode:untested .
-echo $(date)
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###

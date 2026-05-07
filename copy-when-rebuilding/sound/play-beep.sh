@@ -1,4 +1,4 @@
-# ASSUMES ./generate-beep.sh has already been run.
+#!/usr/bin/env bash
+# Plays the image-built default beep unless a path is supplied.
 
-# Play the beep
-pw-play /tmp/beep.wav 2>/dev/null
+pw-play "${1:-/home/sound/beep.wav}" 2>/dev/null

@@ -1,12 +1,17 @@
-# Writes a file to /tmp/beep.wav.
+#!/usr/bin/env bash
+# Writes a file to the first argument, or /tmp/beep.wav by default.
 # Soothing hawaiian guitar-like tones:
 # soft sinewaves with slight warmth,
 # drifting independently between 300-800 Hz.
+
+output_path="${1:-/tmp/beep.wav}"
+export SKG_BEEP_OUTPUT="$output_path"
 
 python3 << 'EOF'
 import wave
 import math
 import struct
+import os
 
 duration = 3.0  # seconds
 sample_rate = 48000
@@ -35,7 +40,12 @@ def envelope(t, dur, attack=0.4, release=1.2):
     return (dur - t) / release
   return 1.0
 
-with wave.open('/tmp/beep.wav', 'w') as wav_file:
+output_path = os.environ["SKG_BEEP_OUTPUT"]
+output_dir = os.path.dirname(output_path)
+if output_dir:
+  os.makedirs(output_dir, exist_ok=True)
+
+with wave.open(output_path, 'w') as wav_file:
   wav_file.setnchannels(1)
   wav_file.setsampwidth(2)
   wav_file.setframerate(sample_rate)
@@ -76,5 +86,5 @@ with wave.open('/tmp/beep.wav', 'w') as wav_file:
 
     wav_file.writeframes(struct.pack('h', value))
 
-print("Soothing beep created at /tmp/beep.wav")
+print(f"Soothing beep created at {output_path}")
 EOF

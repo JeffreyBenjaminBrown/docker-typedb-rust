@@ -1,9 +1,14 @@
-# Writes a file to /tmp/beep.wav.
+#!/usr/bin/env bash
+# Writes a file to the first argument, or /tmp/beep.wav by default.
+
+output_path="${1:-/tmp/beep.wav}"
+export SKG_BEEP_OUTPUT="$output_path"
 
 python3 << 'EOF'
 import wave
 import math
 import struct
+import os
 
 duration = 0.2  # seconds
 base_frequency = 800  # Hz
@@ -33,7 +38,12 @@ def triangle_wave(frequency, t, sample_rate):
   else:
     return 3 - 4 * phase
 
-with wave.open('/tmp/beep.wav', 'w') as wav_file:
+output_path = os.environ["SKG_BEEP_OUTPUT"]
+output_dir = os.path.dirname(output_path)
+if output_dir:
+  os.makedirs(output_dir, exist_ok=True)
+
+with wave.open(output_path, 'w') as wav_file:
   wav_file.setnchannels(1)
   wav_file.setsampwidth(2)
   wav_file.setframerate(sample_rate)
@@ -66,5 +76,5 @@ with wave.open('/tmp/beep.wav', 'w') as wav_file:
 
     wav_file.writeframes(struct.pack('h', value))
 
-print("Chord beep file created at /tmp/beep.wav")
+print(f"Chord beep file created at {output_path}")
 EOF
