@@ -1,3 +1,69 @@
-* when editing the Dockerfile
-  put new code as far at the end as possible,
-  unless I've got a lot of time to rebuild in a prettier order
+#+TITLE: Pitfalls and Drift Between Build Paths
+
+* Fast rebuilds versus conventional Docker builds
+The Nix path uses ~nix-build docker.nix~ and then ~docker load < result~.
+That does /not/ use the ~Dockerfile~ at all.
+
+The conventional path uses ~docker build~ against ~Dockerfile~.
+
+If one file changes but the other does not, the two images can drift
+silently.
+
+* Current deliberate differences
+These are differences we are currently tolerating on purpose.
+
+** TypeDB installation method
+The ~Dockerfile~ installs TypeDB from the vendor apt repository.
+
+The Nix image builds TypeDB from ~typedb.nix~, then reconstructs a
+writable ~\/opt/typedb~ tree at image-customisation time. It also
+provides both of these paths:
+- ~\/opt/typedb/server/data~
+- ~\/opt/typedb/core/server/data~
+
+That compatibility layer exists because scripts and docs in the repo
+have historically referred to both layouts.
+
+** Rust installation method
+The ~Dockerfile~ installs Rust via the rustup shell installer and keeps
+tooling under ~\/usr/local~.
+
+The Nix image installs Rust tooling from nixpkgs and points
+~RUSTUP_HOME~ and ~CARGO_HOME~ at ~\/home/ubuntu~.
+
+** Claude/Codex installation method
+The ~Dockerfile~ installs Claude Code and Codex via ~npm install -g~.
+
+The Nix image uses the nixpkgs ~claude-code~ package and a pinned
+official Codex release tarball.
+
+** Python and Node package shape
+The ~Dockerfile~ explicitly installs ~python3-pip~, ~python3-venv~,
+~pipx~, ~nodejs~, and ~npm~.
+
+The Nix image installs ~python3~, ~pipx~, and ~nodejs_24~.
+Those may be functionally fine while still not matching one-for-one.
+
+** Base tool inventory
+The Nix image explicitly includes several general-purpose tools not
+spelled out in the ~Dockerfile~, including ~wget~, ~less~, ~procps~,
+~psmisc~, ~gnused~, ~gnugrep~, ~findutils~, ~gawk~, ~which~,
+~diffutils~, and ~cmake~.
+
+The ~Dockerfile~ explicitly includes several bootstrap or apt-era
+packages not mirrored one-for-one in ~docker.nix~, including
+~default-jre~, ~build-essential~, ~libssl-dev~,
+~apt-transport-https~, and ~software-properties-common~.
+
+* Operational pitfalls
+** when editing the Dockerfile
+put new code as far at the end as possible,
+unless there's lots of time to rebuild in a prettier order
+
+** when editing docker.nix
+If TypeDB won't start, check whether the image still provides a
+writable ~\/opt/typedb~ tree and a writable data directory behind:
+- ~\/opt/typedb/server/data~
+- ~\/opt/typedb/core/server/data~
+
+~bash/run-servers.sh~ depends on that runtime shape.

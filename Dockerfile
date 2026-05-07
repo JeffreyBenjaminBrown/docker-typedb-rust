@@ -69,26 +69,6 @@ RUN chmod -R        777   /opt/typedb && \
 # See also 'cargo watch' installed as USER below.
 
 
-# ###
-# ### Neo4j
-# ###
-#
-# RUN apt install -y software-properties-common apt-transport-https gpg
-# RUN curl -fsSL https://debian.neo4j.com/neotechnology.gpg.key \
-#   | gpg --dearmor -o /etc/apt/trusted.gpg.d/neo4j.gpg
-# RUN echo "deb https://debian.neo4j.com stable latest" \
-#   | tee /etc/apt/sources.list.d/neo4j.list
-# RUN apt update -y
-# RUN apt install -y neo4j
-# RUN chmod -R        777   /var/lib/neo4j && \
-#     chown -R ubuntu:users /var/lib/neo4j
-# RUN chmod -R        777   /var/log/neo4j && \
-#     chown -R ubuntu:users /var/log/neo4j
-# RUN chmod -R        777   /etc/neo4j && \
-#     chown -R ubuntu:users /etc/neo4j
-# # See also 'cargo watch' installed as USER below.
-
-
 ###
 ### Claude Code and Codex
 ###   Most of these are required by Claude Code; see
@@ -114,6 +94,7 @@ RUN mkdir /home/sound/
 COPY copy-when-rebuilding/sound /home/sound/
 RUN apt install -y alsa-utils     # TODO ? group with pipewire insall
 RUN apt install -y libasound2-dev #      ? group with pipewire insall
+RUN apt install -y libasound2 dbus libglib2.0-0 libsndfile1 systemd
 RUN apt install -y meson ninja-build libspa-0.2-dev libsndfile1-dev \
   libdbus-1-dev libudev-dev libglib2.0-dev libasound2-dev
 RUN cd /tmp && git clone --depth 1 --branch 1.2.6           \
@@ -152,5 +133,4 @@ RUN cargo install --locked cargo-nextest
 ###
 
 EXPOSE 1729
-EXPOSE 7687
 CMD ["/bin/bash"]

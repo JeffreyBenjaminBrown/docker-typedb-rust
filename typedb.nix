@@ -2,13 +2,11 @@
 
 stdenv.mkDerivation rec {
   pname = "typedb";
-  version = "3.8.3";
+  version = "3.10.3";
 
   src = fetchurl {
     url = "https://repo.typedb.com/public/public-release/raw/names/typedb-all-linux-x86_64/versions/${version}/typedb-all-linux-x86_64-${version}.tar.gz";
-    # On first build this will fail with the real hash in the error message.
-    # Paste it in here and rebuild.
-    hash = "sha256-gwtak+xErp8aI9SwtA+NrQ3NZ+mLR7ccdvB+8ojqYI8=";
+    hash = "sha256-SqiTFaKDxl+WR8vxLhJmfWfaK2CkS5aO1wD6rd1tLic=";
   };
 
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
