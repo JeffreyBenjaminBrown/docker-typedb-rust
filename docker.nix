@@ -23,12 +23,13 @@ let
     chmod +x $out/home/sound/*.sh
     PATH=${pkgs.python3}/bin:${pkgs.coreutils}/bin \
       ${pkgs.bash}/bin/bash \
-      $out/home/sound/generate-soothing-beep.sh \
-      $out/home/sound/beep.wav
+      $out/home/sound/generate-harsh-beep.sh
     PATH=${pkgs.python3}/bin:${pkgs.coreutils}/bin \
       ${pkgs.bash}/bin/bash \
-      $out/home/sound/generate-glorious-beep.sh \
-      $out/home/sound/glorious-beep.wav
+      $out/home/sound/generate-soothing-beep.sh
+    PATH=${pkgs.python3}/bin:${pkgs.coreutils}/bin \
+      ${pkgs.bash}/bin/bash \
+      $out/home/sound/generate-glorious-beep.sh
   '';
 in
 

@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
-# Plays the image-built default beep unless a path is supplied.
+# Plays a sound by basename, without path or extension.
 
-pw-play "${1:-/home/sound/beep.wav}" 2>/dev/null
+name="${1:-beep-harsh}"
+
+case "$name" in
+  */*|*.wav)
+    echo "Usage: $0 [basename-without-extension]" >&2
+    exit 64
+    ;;
+esac
+
+pw-play "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$name.wav" 2>/dev/null
