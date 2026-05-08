@@ -3,7 +3,14 @@
 let
   typedb  = pkgs.callPackage ./typedb.nix {};
   pkgConfigPath = pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
+    pkgs.alsa-lib
+    pkgs.dbus
+    pkgs.glib
+    pkgs.libsndfile
     pkgs.openssl
+    pkgs.pipewire
+    pkgs.portaudio
+    pkgs.systemd
     pkgs.zlib
     pkgs.libgit2
     pkgs.libssh2
@@ -70,13 +77,19 @@ pkgs.dockerTools.buildLayeredImage {
     pipewire
     alsa-utils
     alsa-lib
+    alsa-lib.dev
     dbus
+    dbus.dev
     glib
+    glib.dev
     libsndfile
+    libsndfile.dev
     meson
     ninja
     portaudio
+    pipewire.dev
     systemd
+    systemd.dev
 
     # AI CLI runtimes. The CLI packages themselves are installed into a
     # writable prefix at runtime so they can be upgraded independently of nixpkgs.
