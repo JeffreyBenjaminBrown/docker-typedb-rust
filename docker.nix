@@ -2,6 +2,10 @@
 
 let
   typedb  = pkgs.callPackage ./typedb.nix {};
+  emacsWithMagit =
+    (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs: [
+      epkgs.magit
+    ]);
   pkgConfigPath = pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
     pkgs.alsa-lib
     pkgs.dbus
@@ -68,8 +72,10 @@ pkgs.dockerTools.buildLayeredImage {
     nodejs_24
 
     # editor
-    emacs
-    emacsPackages.magit
+    # Use emacsWithPackages so Magit is on the default load-path of the
+    # `emacs` executable. Including `emacsPackages.magit` separately adds
+    # the store path to the image but does not make `(require 'magit)' work.
+    emacsWithMagit
 
     # Rust dev ergonomics (replace `cargo install cargo-watch/cargo-nextest`)
     cargo-watch cargo-nextest

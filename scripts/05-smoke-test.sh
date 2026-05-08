@@ -56,6 +56,7 @@ exec_in() {
 
   # editor + python + node
   exec_in 'emacs --version | head -1'
+  exec_in 'emacs --batch --eval "(progn (require '\''magit) (princ \"magit-ok\n\"))"'
   exec_in 'python3 --version'
   exec_in 'node --version'
   exec_in 'npm --version'

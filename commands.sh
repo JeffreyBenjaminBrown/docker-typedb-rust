@@ -29,15 +29,15 @@ docker run --name $CONTAINER_NAME -it -d                       \
 # Produces ./result which is a .tar.gz Docker image archive.
 # First-time run will fail with the real TypeDB tarball hash — paste it
 # into typedb.nix (replacing lib.fakeHash) and rerun.
+# The load command calls it `jeffreybbrown/hode:untested`, thanks to
+# the pkgs.dockerTools.buildLayeredImage.name field in docker.nix
 nix-build docker.nix
 docker load < result
 echo "WARNING: Hold onto the result file. Because the container bind-mounts the host / nix/store, aggressive GC on the host can also break an already-loaded image at runtime if the required store paths are no longer rooted. Keeping result around, or adding a GC root for the built image closure, makes that safer."
-# The image loads as `jeffreybbrown/hode:untested`, thanks to the
-# pkgs.dockerTools.buildLayeredImage.name field in docker.nix
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###
-DOCKER_IMAGE_SUFFIX="for-audio-coding"
+DOCKER_IMAGE_SUFFIX="fix-magit"
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
 docker rmi jeffreybbrown/hode:untested
