@@ -31,7 +31,9 @@ IMAGE_NAME="jeffreybbrown/hode:latest"
     -v "$HOST_PROJECT":/home/ubuntu/host \
     -v /nix/store:/nix/store:ro \
     -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0 \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e PIPEWIRE_RUNTIME_DIR=/run/user/1000 \
+    -e DISPLAY="${DISPLAY:-:0}" \
     --group-add "$AUDIO_GID" \
     --ulimit rtprio=95 \
     --ulimit memlock=-1 \

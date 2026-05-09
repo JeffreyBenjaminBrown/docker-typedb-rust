@@ -65,6 +65,11 @@ exec_in() {
   exec_in 'ls -l /run/user/1000/pipewire-0 2>&1 || echo no-pipewire-socket'
   exec_in 'pw-cli info 0 2>&1 | head -5 || echo pw-cli-missing-or-cant-connect'
 
+  # GUI plumbing for minifb/X11 apps such as edo72.
+  exec_in 'echo "DISPLAY=$DISPLAY"'
+  exec_in 'ls -l /tmp/.X11-unix 2>&1 || echo no-x11-socket-dir'
+  exec_in 'test -n "$LD_LIBRARY_PATH" && echo "$LD_LIBRARY_PATH" | tr ":" "\n" | grep -E "libx11|libxcursor|libxrandr" || echo no-x11-libs-in-ld-library-path'
+
   # sound samples
   exec_in 'ls /home/sound/'
 

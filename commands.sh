@@ -8,7 +8,9 @@ docker run --name $CONTAINER_NAME -it -d                       \
   -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host     \
   -v /nix/store:/nix/store:ro                                  \
   -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0       \
+  -v /tmp/.X11-unix:/tmp/.X11-unix                             \
   -e PIPEWIRE_RUNTIME_DIR=/run/user/1000                       \
+  -e DISPLAY="${DISPLAY:-:0}"                                  \
   --group-add $(getent group audio | cut -d: -f3)              \
   --ulimit rtprio=95                                           \
   --ulimit memlock=-1                                          \
@@ -37,7 +39,7 @@ echo "WARNING: Hold onto the result file. Because the container bind-mounts the 
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###
-DOCKER_IMAGE_SUFFIX="fix-magit"
+DOCKER_IMAGE_SUFFIX="graphics-access_2026-05-08"
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
 docker rmi jeffreybbrown/hode:untested

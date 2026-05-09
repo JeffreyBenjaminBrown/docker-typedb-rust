@@ -19,6 +19,11 @@ let
     pkgs.libgit2
     pkgs.libssh2
   ];
+  guiLibraryPath = pkgs.lib.makeLibraryPath (with pkgs; [
+    xorg.libX11
+    xorg.libXcursor
+    xorg.libXrandr
+  ]);
 
   localBin = pkgs.runCommand "local-bin" {} ''
     mkdir -p $out/bin
@@ -97,6 +102,11 @@ pkgs.dockerTools.buildLayeredImage {
     systemd
     systemd.dev
 
+    # minifb loads these with dlopen at runtime when opening X11 windows.
+    xorg.libX11
+    xorg.libXcursor
+    xorg.libXrandr
+
     # AI CLI runtimes. The CLI packages themselves are installed into a
     # writable prefix at runtime so they can be upgraded independently of nixpkgs.
     localBin
@@ -139,6 +149,7 @@ pkgs.dockerTools.buildLayeredImage {
     Env = [
       "PATH=/home/ubuntu/.local/npm-global/bin:/bin:/usr/bin"
       "PKG_CONFIG_PATH=${pkgConfigPath}"
+      "LD_LIBRARY_PATH=${guiLibraryPath}"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "LANG=C.UTF-8"
