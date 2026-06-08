@@ -2,11 +2,11 @@
 
 stdenv.mkDerivation rec {
   pname = "typedb";
-  version = "3.10.3";
+  version = "3.11.5";
 
   src = fetchurl {
     url = "https://repo.typedb.com/public/public-release/raw/names/typedb-all-linux-x86_64/versions/${version}/typedb-all-linux-x86_64-${version}.tar.gz";
-    hash = "sha256-SqiTFaKDxl+WR8vxLhJmfWfaK2CkS5aO1wD6rd1tLic=";
+    hash = "sha256-fwyTzcEfgXd1klLPaMrP8ncrEzhfdJdbjiaXgrFB/Bo=";
   };
 
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];

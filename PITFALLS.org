@@ -65,6 +65,32 @@ back to nixpkgs-packaged CLIs, the FHS loader shim described under
 "Operational pitfalls" is no longer needed (nixpkgs patches its
 binaries for the Nix store).
 
+*** Persisting Claude state across container rebuilds
+Claude Code stores everything it remembers -- session transcripts (what
+~claude --resume~ reads), prompt history, OAuth credentials, and config
+-- under ~\/home/ubuntu/.claude~, plus a config file that defaults to
+~\/home/ubuntu/.claude.json~. Both live in the container's writable
+layer, so a ~docker rm~ + rebuild wipes them. That is why a session
+cannot be resumed after rebuilding.
+
+To persist them, a run recipe bind-mounts a host directory onto
+~\/home/ubuntu/.claude~ /and/ sets
+~CLAUDE_CONFIG_DIR=/home/ubuntu/.claude~. The env var is the load-bearing
+part: with it set, Claude writes its ~.claude.json~ *inside* that
+directory (verified empirically) instead of at ~$HOME~, so a single
+directory mount captures all state. Bind-mounting the ~.claude.json~
+file directly is not reliable -- Claude rewrites config via temp-file +
+rename, which a file bind-mount does not follow.
+
+Mount only the /subpath/ ~\/home/ubuntu/.claude~ -- never ~\/home/ubuntu~
+itself, which would hide the image-provided ~.bashrc~ and the writable
+~.local/npm-global~ prefix. The image bakes nothing under ~.claude~, so
+the subpath mount shadows nothing.
+
+The run recipes that already do this: ~commands.sh~ and
+~scripts/04-run-container.sh~ in this repo, and ~bash/docker.sh~ in the
+skg repo.
+
 ** Python and Node
 ~python3~, ~pipx~, and ~nodejs_24~, all from nixpkgs.
 
