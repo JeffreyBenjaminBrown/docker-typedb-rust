@@ -32,10 +32,24 @@ The Nix image installs Rust tooling from nixpkgs and points
 ~RUSTUP_HOME~ and ~CARGO_HOME~ at ~\/home/ubuntu~.
 
 ** Claude/Codex installation method
-The ~Dockerfile~ installs Claude Code and Codex via ~npm install -g~.
+Both build paths install Claude Code and Codex via ~npm install -g~,
+but at different times and into different places.
 
-The Nix image uses the nixpkgs ~claude-code~ package and a pinned
-official Codex release tarball.
+The ~Dockerfile~ installs them at image-build time.
+
+The Nix image does /not/ bake the CLIs in. Instead it ships the
+wrapper scripts in ~copy-when-rebuilding/bin~ (~claude~, ~codex~,
+~update-ai-clis~). On first use ~update-ai-clis~ runs
+~npm install -g @anthropic-ai/claude-code@latest @openai/codex@latest~
+into the writable prefix ~\/home/ubuntu/.local/npm-global~, and
+~.bashrc~ re-runs it once a day. This keeps the CLIs on ~@latest~,
+upgradable independently of nixpkgs.
+
+Note: this is a deliberate departure from an earlier plan to use the
+nixpkgs ~claude-code~ package plus a pinned Codex tarball. If I ever
+switch back to nixpkgs-packaged CLIs, the FHS loader shim described
+under "Operational pitfalls" will no longer be needed (nixpkgs patches
+its binaries for the Nix store).
 
 ** Python and Node package shape
 The ~Dockerfile~ explicitly installs ~python3-pip~, ~python3-venv~,
@@ -67,3 +81,19 @@ writable ~\/opt/typedb~ tree and a writable data directory behind:
 - ~\/opt/typedb/core/server/data~
 
 ~bash/run-servers.sh~ depends on that runtime shape.
+
+** the FHS dynamic loader shim is load-bearing
+~docker.nix~ creates ~\/lib64/ld-linux-x86-64.so.2~ as a symlink to
+nixpkgs glibc, and adds glibc, libstdc++, zlib and openssl to
+~LD_LIBRARY_PATH~ (see ~aiCliLibraryPath~).
+
+This exists because the npm-installed ~claude~/~codex~ are prebuilt FHS
+binaries with the interpreter ~\/lib64/ld-linux-x86-64.so.2~ hardcoded.
+A pure-Nix image has no such path, so without the shim ~execve()~ fails
+with ENOENT, which the shell reports as
+~cannot execute: required file not found~.
+
+Do not remove the ~lib64~ symlink or the AI-CLI entries in
+~LD_LIBRARY_PATH~ while the CLIs are installed from npm. Do not patch
+the binaries in place instead: the ~claude~ binary is Bun-compiled with
+data appended past the ELF image, and ~patchelf~ can corrupt it.

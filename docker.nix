@@ -25,6 +25,18 @@ let
     xorg.libXrandr
   ]);
 
+  aiCliLibraryPath = pkgs.lib.makeLibraryPath (with pkgs; [
+    # Shared libraries the npm-installed AI CLIs (claude, codex) need at runtime.
+    # They are prebuilt FHS binaries, so they resolve libc, libstdc++, libgcc_s,
+    # etc. by plain soname rather than through a Nix RPATH. All of these come from
+    # the same nixpkgs as everything else in the image, so adding them to
+    # LD_LIBRARY_PATH does not risk version skew with the Nix-built tools.
+    glibc
+    stdenv.cc.cc.lib
+    zlib
+    openssl
+  ]);
+
   localBin = pkgs.runCommand "local-bin" {} ''
     mkdir -p $out/bin
     cp ${./copy-when-rebuilding/bin}/* $out/bin/
@@ -120,6 +132,14 @@ pkgs.dockerTools.buildLayeredImage {
 
   extraCommands = ''
     mkdir -p etc home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local tmp root var/empty var/lib/typedb opt/typedb
+
+    # The npm-installed claude/codex are prebuilt dynamic binaries whose
+    # hardcoded ELF interpreter is the FHS path /lib64/ld-linux-x86-64.so.2.
+    # A pure-Nix image has no such file, so execve() fails with ENOENT, which
+    # the shell reports as "cannot execute: required file not found".
+    # Provide the loader at the path these binaries bake in.
+    mkdir -p lib64
+    ln -s ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 lib64/ld-linux-x86-64.so.2
     cp ${./copy-when-rebuilding/etc/passwd}        etc/passwd
     cp ${./copy-when-rebuilding/etc/group}         etc/group
     cp ${./copy-when-rebuilding/etc/nsswitch.conf} etc/nsswitch.conf
@@ -149,7 +169,7 @@ pkgs.dockerTools.buildLayeredImage {
     Env = [
       "PATH=/home/ubuntu/.local/npm-global/bin:/bin:/usr/bin"
       "PKG_CONFIG_PATH=${pkgConfigPath}"
-      "LD_LIBRARY_PATH=${guiLibraryPath}"
+      "LD_LIBRARY_PATH=${guiLibraryPath}:${aiCliLibraryPath}"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "LANG=C.UTF-8"
