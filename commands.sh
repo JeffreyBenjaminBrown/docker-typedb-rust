@@ -4,8 +4,12 @@ exit # This is not a script, just snippets.
 ### ================= ###
 CONTAINER_NAME=rust-typedb
 IMAGE_NAME=jeffreybbrown/hode:latest
+CLAUDE_STATE=/home/jeff/hodal/rust-typedb-claude  # persists Claude state across rebuilds
+mkdir -p "$CLAUDE_STATE"                          # bind-mount source must exist first
 docker run --name $CONTAINER_NAME -it -d                       \
   -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host     \
+  -v "$CLAUDE_STATE":/home/ubuntu/.claude                      \
+  -e CLAUDE_CONFIG_DIR=/home/ubuntu/.claude                    \
   -v /nix/store:/nix/store:ro                                  \
   -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0       \
   -v /tmp/.X11-unix:/tmp/.X11-unix                             \
@@ -20,6 +24,10 @@ docker run --name $CONTAINER_NAME -it -d                       \
   --dns 8.8.8.8                                                \
   --dns 1.1.1.1                                                \
   $IMAGE_NAME
+  # PITFALL: the /home/ubuntu/.claude mount + CLAUDE_CONFIG_DIR persist
+  #   Claude history/credentials/config across rebuilds. Mount that
+  #   SUBPATH only -- never /home/ubuntu itself, which hides the image's
+  #   ~/.bashrc and ~/.local/npm-global.
   # PITFALL: --network host plugs container ports into host ports.
   # PITFALL: /nix/store bind-mount means the image's store references
   #   resolve against the host store at runtime. Keep it :ro.
@@ -39,7 +47,7 @@ echo "WARNING: Hold onto the result file. Because the container bind-mounts the 
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###
-DOCKER_IMAGE_SUFFIX="nix-fix-for-AI-CLIs"
+DOCKER_IMAGE_SUFFIX="bump-typedb"
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
 docker rmi jeffreybbrown/hode:untested

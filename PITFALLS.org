@@ -1,78 +1,106 @@
-#+TITLE: Pitfalls and Drift Between Build Paths
+#+TITLE: Pitfalls and Maintenance Notes
 
-* Fast rebuilds versus conventional Docker builds
-The Nix path uses ~nix-build docker.nix~ and then ~docker load < result~.
-That does /not/ use the ~Dockerfile~ at all.
+This image is built /only/ with Nix:
 
-The conventional path uses ~docker build~ against ~Dockerfile~.
+#+begin_src sh
+nix-build docker.nix
+docker load < result
+#+end_src
 
-If one file changes but the other does not, the two images can drift
-silently.
+There is no Dockerfile. The project used to keep an imperative
+~Dockerfile~ alongside ~docker.nix~, and the two build paths could
+drift silently; that Dockerfile has since been dropped, so the old
+"drift between build paths" warnings no longer apply. If you ever
+reintroduce a Dockerfile, restore those warnings.
 
-* Current deliberate differences
-These are differences we are currently tolerating on purpose.
+* How the Nix image is built
+These are notes on choices that are not obvious from reading
+~docker.nix~ top to bottom.
 
-** TypeDB installation method
-The ~Dockerfile~ installs TypeDB from the vendor apt repository.
-
-The Nix image builds TypeDB from ~typedb.nix~, then reconstructs a
-writable ~\/opt/typedb~ tree at image-customisation time. It also
-provides both of these paths:
+** TypeDB
+~typedb.nix~ fetches the prebuilt TypeDB tarball (pinned by version and
+hash), and ~docker.nix~ reconstructs a writable ~\/opt/typedb~ tree at
+image-customisation time. TypeDB writes relative to
+~TYPEDB_HOME/server/data~, so a read-only ~\/nix/store~ copy will not
+start. The image also provides both of these paths:
 - ~\/opt/typedb/server/data~
 - ~\/opt/typedb/core/server/data~
+because scripts and docs in the repo have historically referred to both
+layouts.
 
-That compatibility layer exists because scripts and docs in the repo
-have historically referred to both layouts.
+To bump TypeDB, change ~version~ in ~typedb.nix~ and update ~hash~ to
+match the new tarball. Keep the Rust ~typedb-driver~ crate in the skg
+repo in step with the server's major version (see below).
 
-** Rust installation method
-The ~Dockerfile~ installs Rust via the rustup shell installer and keeps
-tooling under ~\/usr/local~.
+** Rust
+Rust tooling comes from nixpkgs, and ~RUSTUP_HOME~ and ~CARGO_HOME~
+point at ~\/home/ubuntu~.
 
-The Nix image installs Rust tooling from nixpkgs and points
-~RUSTUP_HOME~ and ~CARGO_HOME~ at ~\/home/ubuntu~.
+The skg server is /not/ built into the image; it is compiled at runtime
+from the mounted source tree. So the ~typedb-driver~ version lives in
+the skg repo (~Cargo.toml~ / ~Cargo.lock~), not here -- there is no skg
+~Cargo.toml~ in the image at build time to pin it against.
 
-** Claude/Codex installation method
-Both build paths install Claude Code and Codex via ~npm install -g~,
-but at different times and into different places.
+When you bump TypeDB in ~typedb.nix~, bump ~typedb-driver~ in the skg
+repo to match. This is a /manual/ step, not an automated one: the
+driver makes breaking API changes within its major series (e.g. 3.8 ->
+3.11 changed ~TypeDBDriver::new~ and ~DriverOptions::new~), so a blind
+~cargo update~ can stop skg from compiling. Bumping it means editing
+the driver call sites (~server/source_sets.rs~,
+~server/dbs/typedb/util.rs~, ~server/test_utils*~) to the new
+signatures, then rebuilding.
 
-The ~Dockerfile~ installs them at image-build time.
-
-The Nix image does /not/ bake the CLIs in. Instead it ships the
-wrapper scripts in ~copy-when-rebuilding/bin~ (~claude~, ~codex~,
-~update-ai-clis~). On first use ~update-ai-clis~ runs
+** Claude / Codex
+The CLIs are /not/ baked into the image. It ships wrapper scripts in
+~copy-when-rebuilding/bin~ (~claude~, ~codex~, ~update-ai-clis~). On
+first use ~update-ai-clis~ runs
 ~npm install -g @anthropic-ai/claude-code@latest @openai/codex@latest~
 into the writable prefix ~\/home/ubuntu/.local/npm-global~, and
 ~.bashrc~ re-runs it once a day. This keeps the CLIs on ~@latest~,
 upgradable independently of nixpkgs.
 
-Note: this is a deliberate departure from an earlier plan to use the
-nixpkgs ~claude-code~ package plus a pinned Codex tarball. If I ever
-switch back to nixpkgs-packaged CLIs, the FHS loader shim described
-under "Operational pitfalls" will no longer be needed (nixpkgs patches
-its binaries for the Nix store).
+This is a deliberate departure from an earlier plan to use the nixpkgs
+~claude-code~ package plus a pinned Codex tarball. If you ever switch
+back to nixpkgs-packaged CLIs, the FHS loader shim described under
+"Operational pitfalls" is no longer needed (nixpkgs patches its
+binaries for the Nix store).
 
-** Python and Node package shape
-The ~Dockerfile~ explicitly installs ~python3-pip~, ~python3-venv~,
-~pipx~, ~nodejs~, and ~npm~.
+*** Persisting Claude state across container rebuilds
+Claude Code stores everything it remembers -- session transcripts (what
+~claude --resume~ reads), prompt history, OAuth credentials, and config
+-- under ~\/home/ubuntu/.claude~, plus a config file that defaults to
+~\/home/ubuntu/.claude.json~. Both live in the container's writable
+layer, so a ~docker rm~ + rebuild wipes them. That is why a session
+cannot be resumed after rebuilding.
 
-The Nix image installs ~python3~, ~pipx~, and ~nodejs_24~.
-Those may be functionally fine while still not matching one-for-one.
+To persist them, a run recipe bind-mounts a host directory onto
+~\/home/ubuntu/.claude~ /and/ sets
+~CLAUDE_CONFIG_DIR=/home/ubuntu/.claude~. The env var is the load-bearing
+part: with it set, Claude writes its ~.claude.json~ *inside* that
+directory (verified empirically) instead of at ~$HOME~, so a single
+directory mount captures all state. Bind-mounting the ~.claude.json~
+file directly is not reliable -- Claude rewrites config via temp-file +
+rename, which a file bind-mount does not follow.
 
-** Base tool inventory
-The Nix image explicitly includes several general-purpose tools not
-spelled out in the ~Dockerfile~, including ~wget~, ~less~, ~procps~,
-~psmisc~, ~gnused~, ~gnugrep~, ~findutils~, ~gawk~, ~which~,
-~diffutils~, and ~cmake~.
+Mount only the /subpath/ ~\/home/ubuntu/.claude~ -- never ~\/home/ubuntu~
+itself, which would hide the image-provided ~.bashrc~ and the writable
+~.local/npm-global~ prefix. The image bakes nothing under ~.claude~, so
+the subpath mount shadows nothing.
 
-The ~Dockerfile~ explicitly includes several bootstrap or apt-era
-packages not mirrored one-for-one in ~docker.nix~, including
-~default-jre~, ~build-essential~, ~libssl-dev~,
-~apt-transport-https~, and ~software-properties-common~.
+The run recipes that already do this: ~commands.sh~ and
+~scripts/04-run-container.sh~ in this repo, and ~bash/docker.sh~ in the
+skg repo.
+
+** Python and Node
+~python3~, ~pipx~, and ~nodejs_24~, all from nixpkgs.
+
+** Tool inventory
+The full list of general-purpose tools lives in the ~contents~ list in
+~docker.nix~. Treat that list as the source of truth rather than
+duplicating it here -- a duplicated inventory is exactly the kind of
+thing that drifts.
 
 * Operational pitfalls
-** when editing the Dockerfile
-put new code as far at the end as possible,
-unless there's lots of time to rebuild in a prettier order
 
 ** when editing docker.nix
 If TypeDB won't start, check whether the image still provides a
@@ -80,7 +108,7 @@ writable ~\/opt/typedb~ tree and a writable data directory behind:
 - ~\/opt/typedb/server/data~
 - ~\/opt/typedb/core/server/data~
 
-~bash/run-servers.sh~ depends on that runtime shape.
+~bash/start-servers.sh~ depends on that runtime shape.
 
 ** the FHS dynamic loader shim is load-bearing
 ~docker.nix~ creates ~\/lib64/ld-linux-x86-64.so.2~ as a symlink to

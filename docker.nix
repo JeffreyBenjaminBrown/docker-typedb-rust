@@ -72,9 +72,24 @@ pkgs.dockerTools.buildLayeredImage {
 
     # network / TLS / gpg
     curl wget openssl gnupg
+    netcat-gnu    # `nc` — to poke TCP ports (is TypeDB on 1729 / skg on 1730 up?)
 
     # version control & search
     git ripgrep
+
+    # everyday CLI tools (these were missing from the image)
+    jq            # query/transform JSON — the Emacs<->Rust API speaks JSON
+    perl          # regex/text munging of org-mode files
+    tree          # visualize directory structure
+    fd            # fast, ergonomic file finder
+    file          # identify file types
+    bat           # syntax-highlighted, line-numbered file viewing
+    htop          # interactive process / CPU monitor (e.g. spot TypeDB load)
+    lsof          # which process holds a port / open file (1729, 1730, locks)
+    tmux          # run/observe the servers in split panes
+    gnupatch      # `patch` — apply diffs
+    gnutar gzip   # tar + gzip were both absent; needed for archives & backups
+    unzip         # extract .zip archives
 
     # build tools (for `cargo build`, native deps, etc.)
     gcc gnumake pkg-config cmake

@@ -1,8 +1,9 @@
 This Docker image contains Rust, TypeDB and Claude Code.
+It is built with Nix (`nix-build docker.nix` then `docker load < result`);
+there is no Dockerfile. See `commands.sh` for the full build/run recipe.
 
-See [PITFALLS.org](/home/ubuntu/docker-typedb-rust/PITFALLS.org) for
-known drift between the `Dockerfile` and `docker.nix` build paths,
-plus some maintenance notes.
+See [PITFALLS.org](PITFALLS.org) for operational pitfalls of the Nix
+build and some maintenance notes.
 
 # How safe is Claude Code in this Docker container?
 
