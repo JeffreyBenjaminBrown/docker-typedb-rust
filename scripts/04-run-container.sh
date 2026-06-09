@@ -9,11 +9,11 @@ LOG="out/04-run.log"
 CONTAINER_NAME=rust-typedb
 HOST_PROJECT="$HOME/hodal/docker-typedb-rust"
 IMAGE_NAME="jeffreybbrown/hode:latest"
-# Host dir for Claude Code state (session transcripts for --resume,
-# prompt history, OAuth credentials, config). Kept on the host so it
-# survives container rebuilds. Override with CLAUDE_STATE=/some/host/dir.
+# Claude Code state (session transcripts for --resume, prompt history, OAuth
+# credentials, config) persists automatically: the image bakes
+# CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude, which is inside the project
+# bind-mount below, so no separate .claude mount is needed.
 # See PITFALLS.org, "Persisting Claude state across container rebuilds".
-CLAUDE_STATE="${CLAUDE_STATE:-$(dirname "$HOST_PROJECT")/rust-typedb-claude}"
 
 {
   echo "=== date ==="
@@ -22,8 +22,6 @@ CLAUDE_STATE="${CLAUDE_STATE:-$(dirname "$HOST_PROJECT")/rust-typedb-claude}"
 
   echo "=== HOST_PROJECT=$HOST_PROJECT ==="
   [ -d "$HOST_PROJECT" ] || echo "WARNING: HOST_PROJECT not a dir"
-  echo "=== CLAUDE_STATE=$CLAUDE_STATE ==="
-  mkdir -p "$CLAUDE_STATE"   # bind-mount source must exist before docker run
   echo "=== cleaning up any prior container ==="
   docker stop "$CONTAINER_NAME" 2>/dev/null || true
   docker rm   "$CONTAINER_NAME" 2>/dev/null || true
@@ -36,8 +34,6 @@ CLAUDE_STATE="${CLAUDE_STATE:-$(dirname "$HOST_PROJECT")/rust-typedb-claude}"
   echo "=== docker run ==="
   docker run --name "$CONTAINER_NAME" -d \
     -v "$HOST_PROJECT":/home/ubuntu/host \
-    -v "$CLAUDE_STATE":/home/ubuntu/.claude \
-    -e CLAUDE_CONFIG_DIR=/home/ubuntu/.claude \
     -v /nix/store:/nix/store:ro \
     -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \

@@ -68,28 +68,32 @@ binaries for the Nix store).
 *** Persisting Claude state across container rebuilds
 Claude Code stores everything it remembers -- session transcripts (what
 ~claude --resume~ reads), prompt history, OAuth credentials, and config
--- under ~\/home/ubuntu/.claude~, plus a config file that defaults to
-~\/home/ubuntu/.claude.json~. Both live in the container's writable
-layer, so a ~docker rm~ + rebuild wipes them. That is why a session
-cannot be resumed after rebuilding.
+(a ~.claude.json~ included) -- under ~CLAUDE_CONFIG_DIR~. In the
+container's writable layer that is wiped by ~docker rm~ + rebuild, which
+is why a session cannot be resumed afterward.
 
-To persist them, a run recipe bind-mounts a host directory onto
-~\/home/ubuntu/.claude~ /and/ sets
-~CLAUDE_CONFIG_DIR=/home/ubuntu/.claude~. The env var is the load-bearing
-part: with it set, Claude writes its ~.claude.json~ *inside* that
-directory (verified empirically) instead of at ~$HOME~, so a single
-directory mount captures all state. Bind-mounting the ~.claude.json~
-file directly is not reliable -- Claude rewrites config via temp-file +
-rename, which a file bind-mount does not follow.
+The image now persists it automatically. ~docker.nix~ bakes
+~CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude~ -- a path INSIDE the
+project bind-mount (~-v "$HOST":/home/ubuntu/host~). Because that mount
+lives on the host, all Claude state written there survives rebuilds, with
+NO separate ~.claude~ mount. The env var is load-bearing: with it set
+Claude puts ~.claude.json~, ~projects/~, ~sessions/~, and credentials all
+under that one dir (a file bind-mount of ~.claude.json~ is NOT reliable --
+Claude rewrites it via temp-file + rename, which a file mount won't
+follow).
 
-Mount only the /subpath/ ~\/home/ubuntu/.claude~ -- never ~\/home/ubuntu~
-itself, which would hide the image-provided ~.bashrc~ and the writable
-~.local/npm-global~ prefix. The image bakes nothing under ~.claude~, so
-the subpath mount shadows nothing.
+~my-dot-claude~ is a git checkout of
+github.com/JeffreyBenjaminBrown/my-dot-claude: it holds the shared
+user-level config (the stop-hook beep + settings) as TRACKED files, while
+the volatile state and secrets above stay untracked via a whitelist
+~.gitignore~. The image's ~.bashrc~ clones it over HTTPS on the first
+interactive shell if missing -- the image ships no ssh, so SSH remotes do
+not work in-container (HTTPS only; public repo, or set up a token). To
+migrate an OLDER container's ephemeral history into it before rebuilding,
+run ~my-dot-claude/before-relaunch.sh~ inside that container first.
 
-The run recipes that already do this: ~commands.sh~ and
-~scripts/04-run-container.sh~ in this repo, and ~bash/docker.sh~ in the
-skg repo.
+Never mount over ~\/home/ubuntu~ itself -- it would hide the
+image-provided ~.bashrc~ and the writable ~.local/npm-global~ prefix.
 
 ** Python and Node
 ~python3~, ~pipx~, and ~nodejs_24~, all from nixpkgs.

@@ -20,9 +20,9 @@ let
     pkgs.libssh2
   ];
   guiLibraryPath = pkgs.lib.makeLibraryPath (with pkgs; [
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXrandr
+    libx11
+    libxcursor
+    libxrandr
   ]);
 
   aiCliLibraryPath = pkgs.lib.makeLibraryPath (with pkgs; [
@@ -130,9 +130,9 @@ pkgs.dockerTools.buildLayeredImage {
     systemd.dev
 
     # minifb loads these with dlopen at runtime when opening X11 windows.
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXrandr
+    libx11
+    libxcursor
+    libxrandr
 
     # AI CLI runtimes. The CLI packages themselves are installed into a
     # writable prefix at runtime so they can be upgraded independently of nixpkgs.
@@ -194,6 +194,17 @@ pkgs.dockerTools.buildLayeredImage {
       "NPM_CONFIG_PREFIX=/home/ubuntu/.local/npm-global"
       "RUSTUP_HOME=/home/ubuntu/.rustup"
       "CARGO_HOME=/home/ubuntu/.cargo"
+      # Claude Code keeps ALL its state (history, sessions, credentials,
+      # config) plus our shared user-level config (hooks/settings) under
+      # CLAUDE_CONFIG_DIR. Pointing it inside the project bind-mount
+      # (/home/ubuntu/host) makes that state persist across container rebuilds
+      # with no separate .claude mount. The dir is a git checkout of
+      # github.com/JeffreyBenjaminBrown/my-dot-claude (see ~/.bashrc, which
+      # clones it on first interactive shell if absent).
+      "CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude"
+      # Where the PipeWire socket is bind-mounted, so the Claude stop-hook beep
+      # can reach the server.
+      "PIPEWIRE_RUNTIME_DIR=/run/user/1000"
     ];
     ExposedPorts = {
       "1729/tcp" = {};   # TypeDB
