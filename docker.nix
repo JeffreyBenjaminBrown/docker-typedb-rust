@@ -38,6 +38,16 @@ let
     openssl
   ]);
 
+  # Merged ALSA plugin dir that includes PipeWire's pcm/ctl plugins (which live
+  # in the pipewire output, not alsa-lib's) alongside the standard converters.
+  # ALSA_PLUGIN_DIR (in config.Env) points here, and /etc/asound.conf sets the
+  # default PCM/CTL to `type pipewire`, so raw-ALSA apps route through PipeWire
+  # instead of grabbing the card. See copy-when-rebuilding/etc/asound.conf.
+  alsaPluginDir = pkgs.symlinkJoin {
+    name = "alsa-plugins-with-pipewire";
+    paths = [ pkgs.alsa-plugins pkgs.pipewire ];
+  };
+
   localBin = pkgs.runCommand "local-bin" {} ''
     mkdir -p $out/bin
     cp ${./copy-when-rebuilding/bin}/* $out/bin/
@@ -160,6 +170,7 @@ pkgs.dockerTools.buildLayeredImage {
     cp ${./copy-when-rebuilding/etc/passwd}        etc/passwd
     cp ${./copy-when-rebuilding/etc/group}         etc/group
     cp ${./copy-when-rebuilding/etc/nsswitch.conf} etc/nsswitch.conf
+    cp ${./copy-when-rebuilding/etc/asound.conf}   etc/asound.conf
     cp ${./copy-when-rebuilding/home/ubuntu/.bashrc} home/ubuntu/.bashrc
     chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local
     chmod 0644 home/ubuntu/.bashrc
@@ -187,6 +198,9 @@ pkgs.dockerTools.buildLayeredImage {
       "PATH=/home/ubuntu/.local/npm-global/bin:/bin:/usr/bin"
       "PKG_CONFIG_PATH=${pkgConfigPath}"
       "LD_LIBRARY_PATH=${guiLibraryPath}:${aiCliLibraryPath}"
+      # Where ALSA finds the pipewire pcm/ctl plugins referenced by
+      # /etc/asound.conf, so the default device routes through PipeWire.
+      "ALSA_PLUGIN_DIR=${alsaPluginDir}/lib/alsa-lib"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
       "LANG=C.UTF-8"
