@@ -14,6 +14,7 @@ let
     pkgs.openssl
     pkgs.pipewire
     pkgs.portaudio
+    pkgs.libjack2
     pkgs.systemd
     pkgs.zlib
     pkgs.libgit2
@@ -113,6 +114,7 @@ pkgs.dockerTools.buildLayeredImage {
     cargo-watch cargo-nextest
 
     pipewire
+    pipewire.jack
     alsa-utils
     alsa-lib
     alsa-lib.dev
