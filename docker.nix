@@ -103,14 +103,45 @@ pkgs.dockerTools.buildLayeredImage {
     rustc
     nodejs_24
 
-    # editor
+    # editors
     # Use emacsWithPackages so Magit is on the default load-path of the
     # `emacs` executable. Including `emacsPackages.magit` separately adds
     # the store path to the image but does not make `(require 'magit)' work.
     emacsWithMagit
+    (pkgs.neovim.override {
+      # Neovim for the (planned) vim client -- the neovim analog of
+      # emacsWithMagit -- wrapped with its third-party plugins baked onto its
+      # packpath:
+      #   - orgmode (nvim-orgmode) renders/folds the org-mode buffers the skg
+      #     server sends. Its tree-sitter parser (org, v2.0.4) ships inside the
+      #     tree-sitter-orgmode luarock at lib/lua/5.1/parser/org.so -- on Lua's
+      #     cpath but NOT on neovim's runtimepath, so treesitter can't find it.
+      #     The runCommand plugin below re-exposes that exact .so as parser/org.so
+      #     on the packpath. (The standalone vimPlugins org grammars are v1.3.1,
+      #     too old for this orgmode; nvim-treesitter has no `org` grammar at all.)
+      #   - neogit (a magit clone) + its required plenary-nvim dep, plus
+      #     diffview-nvim for diffs/merges: an in-editor git porcelain.
+      # Only the editor and these plugins are baked in; the skg client's own Lua
+      # lives in the mounted project tree and is loaded at runtime, exactly as
+      # the elisp client is. (The .override expression is parenthesized because a
+      # bare `pkgs.neovim.override { ... }` in a list parses as two elements.)
+      configure = {
+        packages.skg.start = [
+          pkgs.vimPlugins.orgmode
+          # The matching org tree-sitter parser (see comment above), lifted out
+          # of the tree-sitter-orgmode luarock and onto the packpath as
+          # parser/org.so so neovim's treesitter can load it.
+          (pkgs.runCommandLocal "nvim-org-treesitter-parser" {} ''
+            mkdir -p $out/parser
+            cp ${pkgs.luajitPackages.tree-sitter-orgmode}/lib/lua/5.1/parser/org.so $out/parser/org.so
+          '')
+          pkgs.vimPlugins.neogit
+          pkgs.vimPlugins.plenary-nvim  # neogit's required dependency
+          pkgs.vimPlugins.diffview-nvim # optional, recommended with neogit
+        ]; }; })
 
     # Rust dev ergonomics (replace `cargo install cargo-watch/cargo-nextest`)
-    cargo-watch cargo-nextest
+    cargo-watch cargo-nextest clippy
 
     pipewire
     alsa-utils
