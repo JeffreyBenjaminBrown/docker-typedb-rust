@@ -189,7 +189,7 @@ pkgs.dockerTools.buildLayeredImage {
   ]);
 
   extraCommands = ''
-    mkdir -p etc home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local tmp root var/empty var/lib/typedb opt/typedb
+    mkdir -p etc home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local home/ubuntu/.codex tmp root var/empty var/lib/typedb opt/typedb
 
     # The npm-installed claude/codex are prebuilt dynamic binaries whose
     # hardcoded ELF interpreter is the FHS path /lib64/ld-linux-x86-64.so.2.
@@ -203,8 +203,9 @@ pkgs.dockerTools.buildLayeredImage {
     cp ${./copy-when-rebuilding/etc/nsswitch.conf} etc/nsswitch.conf
     cp ${./copy-when-rebuilding/etc/asound.conf}   etc/asound.conf
     cp ${./copy-when-rebuilding/home/ubuntu/.bashrc} home/ubuntu/.bashrc
-    chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local
-    chmod 0644 home/ubuntu/.bashrc
+    cp ${./copy-when-rebuilding/home/ubuntu/.codex/hooks.json} home/ubuntu/.codex/hooks.json
+    chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local home/ubuntu/.codex
+    chmod 0644 home/ubuntu/.bashrc home/ubuntu/.codex/hooks.json
 
     # TypeDB needs a writable install tree at runtime. Leaving it only in
     # /nix/store makes `typedb server` fail because it writes relative to
@@ -249,8 +250,8 @@ pkgs.dockerTools.buildLayeredImage {
       # github.com/JeffreyBenjaminBrown/my-dot-claude (see ~/.bashrc, which
       # clones it on first interactive shell if absent).
       "CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude"
-      # Where the PipeWire socket is bind-mounted, so the Claude stop-hook beep
-      # can reach the server.
+      # Where the PipeWire socket is bind-mounted, so Claude/Codex stop-hook
+      # beeps can reach the server.
       "PIPEWIRE_RUNTIME_DIR=/run/user/1000"
     ];
     ExposedPorts = {

@@ -7,6 +7,8 @@ IMAGE_NAME=jeffreybbrown/hode:latest
 # Claude state persists automatically now: the image bakes
 # CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude, which lives inside the
 # project bind-mount below -- so no separate .claude mount is needed.
+# The image also includes the user-level Codex completion hook. Log in and
+# launch Codex manually after entering the container.
 docker run --name $CONTAINER_NAME -it -d                       \
   -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host     \
   -v /nix/store:/nix/store:ro                                  \
@@ -57,5 +59,8 @@ docker push jeffreybbrown/hode:latest
 ### start/stop ###
 ### ========== ###
 docker exec -it $CONTAINER_NAME bash
+# Inside the container, when needed:
+codex login --device-auth
+codex --yolo
 
 docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME

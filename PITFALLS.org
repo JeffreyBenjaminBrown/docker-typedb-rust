@@ -95,6 +95,20 @@ run ~my-dot-claude/before-relaunch.sh~ inside that container first.
 Never mount over ~\/home/ubuntu~ itself -- it would hide the
 image-provided ~.bashrc~ and the writable ~.local/npm-global~ prefix.
 
+*** Codex completion hook and container startup
+The image includes a user-level Codex ~Stop~ hook definition at
+~/home/ubuntu/.codex/hooks.json~ and its sound runner at
+~/home/sound/beep-if-main-agent.sh~. Because the hook is user-level, it
+works independently of the mounted repository and requires no project
+~.codex~ files or launcher-side copying. The image leaves the
+~/home/ubuntu/.codex~ directory writable so Codex can maintain its own
+state. Hook trust is still a human decision; the image does not include
+or manufacture trust state.
+
+The launch recipes keep the container alive with its normal shell or
+~sleep infinity~ lifecycle. Enter it with ~docker exec -it ... bash~,
+run ~codex login~ when needed, and then start ~codex --yolo~ manually.
+
 ** Python and Node
 ~python3~, ~pipx~, and ~nodejs_24~, all from nixpkgs.
 
