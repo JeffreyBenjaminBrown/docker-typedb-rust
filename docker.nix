@@ -204,8 +204,12 @@ pkgs.dockerTools.buildLayeredImage {
     cp ${./copy-when-rebuilding/etc/asound.conf}   etc/asound.conf
     cp ${./copy-when-rebuilding/home/ubuntu/.bashrc} home/ubuntu/.bashrc
     cp ${./copy-when-rebuilding/home/ubuntu/.codex/hooks.json} home/ubuntu/.codex/hooks.json
+    # /home/ubuntu/host is covered by a runtime bind mount, so anything baked
+    # there would be hidden. Install the Codex-state exporter one level up.
+    cp ${./copy-when-rebuilding/home/ubuntu/export-codex-sessions.sh} home/ubuntu/export-codex-sessions.sh
     chmod 0777 home/ubuntu home/ubuntu/.cargo home/ubuntu/.rustup home/ubuntu/.local home/ubuntu/.codex
     chmod 0644 home/ubuntu/.bashrc home/ubuntu/.codex/hooks.json
+    chmod 0755 home/ubuntu/export-codex-sessions.sh
 
     # TypeDB needs a writable install tree at runtime. Leaving it only in
     # /nix/store makes `typedb server` fail because it writes relative to
