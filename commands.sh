@@ -4,13 +4,21 @@ exit # This is not a script, just snippets.
 ### ================= ###
 CONTAINER_NAME=rust-typedb
 IMAGE_NAME=jeffreybbrown/hode:latest
+HOST_PROJECT=/home/jeff/hodal/docker-typedb-rust
+CODEX_HOMESTATE="${CODEX_HOMESTATE:-$HOST_PROJECT/.codex/homestate}"
+CODEX_MOUNT=()
+if [ -d "$CODEX_HOMESTATE" ] \
+  && [ -n "$(find "$CODEX_HOMESTATE" -mindepth 1 -print -quit)" ]; then
+  CODEX_MOUNT=(-v "$CODEX_HOMESTATE:/home/ubuntu/.codex")
+fi
 # Claude state persists automatically now: the image bakes
 # CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude, which lives inside the
 # project bind-mount below -- so no separate .claude mount is needed.
 # The image also includes the user-level Codex completion hook. Log in and
 # launch Codex manually after entering the container.
 docker run --name $CONTAINER_NAME -it -d                       \
-  -v /home/jeff/hodal/docker-typedb-rust:/home/ubuntu/host     \
+  -v "$HOST_PROJECT":/home/ubuntu/host                       \
+  "${CODEX_MOUNT[@]}"                                        \
   -v /nix/store:/nix/store:ro                                  \
   -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0       \
   -v /tmp/.X11-unix:/tmp/.X11-unix                             \
@@ -48,7 +56,7 @@ echo "WARNING: Hold onto the result file. Because the container bind-mounts the 
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###
-DOCKER_IMAGE_SUFFIX="typedb-3.12.0"
+DOCKER_IMAGE_SUFFIX="sound-for-codex"
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
 docker rmi jeffreybbrown/hode:untested

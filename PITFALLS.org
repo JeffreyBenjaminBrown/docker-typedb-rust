@@ -109,6 +109,21 @@ The launch recipes keep the container alive with its normal shell or
 ~sleep infinity~ lifecycle. Enter it with ~docker exec -it ... bash~,
 run ~codex login~ when needed, and then start ~codex --yolo~ manually.
 
+*** Exporting Codex state from simple repositories and worktrees
+~/home/ubuntu/export-codex-sessions.sh~ moves the complete Codex home to
+a host-backed directory for reuse by later containers. With a simple
+read-write project mount it selects
+~/home/ubuntu/host/.codex/homestate~. With Live-Midi's split mounts it
+selects the writable worktree's ~.codex/homestate~ instead of the
+read-only repository root. Use ~--dry-run~ to inspect the choice, pass an
+absolute destination to override it, or answer the prompt when the mount
+layout is ambiguous.
+
+The launchers mount a nonempty homestate back at
+~/home/ubuntu/.codex~. They deliberately do not create an empty source,
+because an empty mount would hide the hook baked into the image. Exported
+homestate is gitignored because it contains credentials and session data.
+
 ** Python and Node
 ~python3~, ~pipx~, and ~nodejs_24~, all from nixpkgs.
 
