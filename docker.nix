@@ -109,7 +109,14 @@ pkgs.dockerTools.buildLayeredImage {
     sqlite
     # languages
     cargo
-    python3
+
+    # python3, plus the libraries the DIY EKG project (docker-isolator's
+    # ekg profile) uses: pyserial reads the Arduino and Cerelog boards,
+    # pylsl receives the Cerelog's Lab Streaming Layer stream, and
+    # neurokit2 (which brings numpy, scipy, pandas and matplotlib) finds
+    # heartbeats and computes heart-rate variability.
+    (python3.withPackages (ps: with ps; [ pyserial pylsl neurokit2 ]))
+
     pipx
     rustc
     nodejs_24
@@ -151,8 +158,13 @@ pkgs.dockerTools.buildLayeredImage {
           pkgs.vimPlugins.diffview-nvim # optional, recommended with neogit
         ]; }; })
 
+    # Programming microcontroller boards (DIY EKG project, ekg profile).
+    # arduino-cli compiles and uploads Arduino sketches; the UNO R4 Minima
+    # receives them via dfu-util. esptool flashes the Cerelog's ESP32.
+    arduino-cli dfu-util esptool
+
     # Rust dev ergonomics (replace `cargo install cargo-watch/cargo-nextest`)
-    cargo-watch cargo-nextest clippy
+    cargo-watch cargo-nextest clippy samply
 
     pipewire
     pipewire.jack

@@ -48,7 +48,7 @@ echo "WARNING: Hold onto the result file. Because the container bind-mounts the 
 
 ### tag/push -- PITFALL: only do this once it works ###
 ### =============================================== ###
-DOCKER_IMAGE_SUFFIX="codex-export'
+DOCKER_IMAGE_SUFFIX="npm-update_2026-09-19"
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:$DOCKER_IMAGE_SUFFIX
 docker tag jeffreybbrown/hode:untested jeffreybbrown/hode:latest
 docker rmi jeffreybbrown/hode:untested
