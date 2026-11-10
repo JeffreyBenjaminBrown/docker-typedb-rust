@@ -1,3 +1,4 @@
 result
 /.codex/homestate/
 __pycache__/
+copy-when-rebuilding/sound/*.wav
