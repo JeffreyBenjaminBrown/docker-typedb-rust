@@ -3,4 +3,13 @@ set -eu
 
 prefix="${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
 mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
-npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest
+status=0
+npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest || status=$?
+
+# npm keeps every package it downloads in its cache (~/.npm) and never
+# evicts anything. These daily updates grew it to ~6 GB per container,
+# all of it in the container's writable layer, and nothing reuses it.
+# So empty it after every update, whether or not the update succeeded.
+npm cache clean --force >/dev/null 2>&1 || true
+
+exit "$status"
