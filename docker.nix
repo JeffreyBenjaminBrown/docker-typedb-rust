@@ -54,11 +54,22 @@ let
     chmod +x $out/bin/*
   '';
 
+  # The sound sources, minus the Python bytecode cache that running the
+  # generate-*.sh scripts by hand leaves behind (they import
+  # sound_common.py from this folder). A __pycache__ directory here
+  # once broke the build, because the plain `cp` below skips directories
+  # with an error.
+  soundSrc = pkgs.lib.cleanSourceWith {
+    src = ./copy-when-rebuilding/sound;
+    filter = path: type:
+      !(type == "directory" && baseNameOf path == "__pycache__");
+  };
+
   # Embed the contents of ./copy-when-rebuilding/sound under /home/sound,
   # and build the default WAV samples at image-build time.
   soundFiles = pkgs.runCommand "sound-files" {} ''
     mkdir -p $out/home/sound
-    cp ${./copy-when-rebuilding/sound}/* $out/home/sound/
+    cp ${soundSrc}/* $out/home/sound/
     chmod +x $out/home/sound/*.sh
     PATH=${pkgs.python3}/bin:${pkgs.coreutils}/bin \
       ${pkgs.bash}/bin/bash \
