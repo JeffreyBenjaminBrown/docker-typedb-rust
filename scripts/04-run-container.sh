@@ -9,6 +9,12 @@ LOG="out/04-run.log"
 CONTAINER_NAME=rust-typedb
 HOST_PROJECT="$HOME/hodal/docker-typedb-rust"
 IMAGE_NAME="jeffreybbrown/hode:latest"
+CODEX_HOMESTATE="${CODEX_HOMESTATE:-$HOST_PROJECT/.codex/homestate}"
+CODEX_MOUNT=()
+if [ -d "$CODEX_HOMESTATE" ] \
+  && [ -n "$(find "$CODEX_HOMESTATE" -mindepth 1 -print -quit)" ]; then
+  CODEX_MOUNT=(-v "$CODEX_HOMESTATE:/home/ubuntu/.codex")
+fi
 # Claude Code state (session transcripts for --resume, prompt history, OAuth
 # credentials, config) persists automatically: the image bakes
 # CLAUDE_CONFIG_DIR=/home/ubuntu/host/my-dot-claude, which is inside the project
@@ -34,6 +40,7 @@ IMAGE_NAME="jeffreybbrown/hode:latest"
   echo "=== docker run ==="
   docker run --name "$CONTAINER_NAME" -d \
     -v "$HOST_PROJECT":/home/ubuntu/host \
+    "${CODEX_MOUNT[@]}" \
     -v /nix/store:/nix/store:ro \
     -v /run/user/1000/pipewire-0:/run/user/1000/pipewire-0 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
