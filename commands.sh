@@ -50,6 +50,7 @@ docker run --name $CONTAINER_NAME -it -d                       \
 # into typedb.nix (replacing lib.fakeHash) and rerun.
 # The load command calls it `jeffreybbrown/hode:untested`, thanks to
 # the pkgs.dockerTools.buildLayeredImage.name field in docker.nix
+
 nix-build docker.nix
 docker load < result
 echo "WARNING: Hold onto the result file. Because the container bind-mounts the host / nix/store, aggressive GC on the host can also break an already-loaded image at runtime if the required store paths are no longer rooted. Keeping result around, or adding a GC root for the built image closure, makes that safer. (THis warning applies if the container was run via a 'docker run' command like the one at the toop of this file, with the line '-v /nix/store:/nix/store:ro'. If it was run via docker-isolator, the warning does not apply, because in that case Docker has its own GC.)"

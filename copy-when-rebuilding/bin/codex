@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
+# Runs the npm-installed codex, first installing it if this container has no
+# working install yet (or waiting for an install already in progress).
 set -eu
 
 prefix="${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
-real="$prefix/bin/codex"
-if [ ! -x "$real" ]; then
-  echo "Bootstrapping Codex from npm into $prefix" >&2
-  update-ai-clis
+if [ ! -e "$prefix/.verified" ]; then
+  echo "Installing Codex (first use in this container; takes a few minutes)" >&2
+  update-ai-clis --ensure
 fi
-exec "$real" "$@"
+exec "$prefix/bin/codex" "$@"

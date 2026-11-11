@@ -92,6 +92,7 @@ pkgs.dockerTools.buildLayeredImage {
   contents = (with pkgs; [
     # shell + core unix
     bashInteractive coreutils gnused gnugrep findutils gawk which diffutils
+    util-linux    # `flock`, which update-ai-clis uses to serialize installs
     less procps psmisc iproute2
 
     # network / TLS / gpg
@@ -256,7 +257,10 @@ pkgs.dockerTools.buildLayeredImage {
     Cmd         = [ "${pkgs.bashInteractive}/bin/bash" ];
     WorkingDir  = "/home/ubuntu";
     Env = [
-      "PATH=/home/ubuntu/.local/npm-global/bin:/bin:/usr/bin"
+      # /bin first, so `claude` and `codex` are always the wrappers from
+      # copy-when-rebuilding/bin, which install or repair the npm-installed
+      # CLIs before running them.
+      "PATH=/bin:/usr/bin:/home/ubuntu/.local/npm-global/bin"
       "PKG_CONFIG_PATH=${pkgConfigPath}"
       "LD_LIBRARY_PATH=${guiLibraryPath}:${aiCliLibraryPath}"
       # Where ALSA finds the pipewire pcm/ctl plugins referenced by

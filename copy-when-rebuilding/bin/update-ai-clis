@@ -1,10 +1,46 @@
 #!/usr/bin/env bash
+# Installs or updates Claude Code and Codex.
+#
+#   update-ai-clis           update, unless one succeeded in the last day
+#   update-ai-clis --force   update now
+#   update-ai-clis --ensure  install only if there is no working install
+#
+# Guarantees, so nothing has to be done by hand on a new container:
+# - Runs are serialized by one lock. A first `claude` in one shell waits
+#   for the background update that .bashrc started in another, instead of
+#   writing into the same directory at the same time.
+# - Each install goes into its own fresh directory and goes live (the
+#   $NPM_CONFIG_PREFIX symlink is switched to it) only after both CLIs
+#   actually run. A failed or half-downloaded install is discarded, never
+#   used, and never replaces a working one.
 set -eu
 
 prefix="${NPM_CONFIG_PREFIX:-$HOME/.local/npm-global}"
-mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
+versions="$HOME/.local/ai-clis"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/ai-cli-updates"
+stamp="$state/last-success"
+mkdir -p "$state" "$versions"
+
+exec 9>"$state/install.lock"
+flock 9
+
+case "${1:-}" in
+  --ensure)
+    [ -e "$prefix/.verified" ] && exit 0 ;;
+  --force) ;;
+  *)
+    if [ -e "$prefix/.verified" ] && [ -e "$stamp" ] \
+       && [ -z "$(find "$stamp" -mtime +0 2>/dev/null)" ]; then
+      exit 0
+    fi ;;
+esac
+
+new="$versions/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$new"
 status=0
-npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest || status=$?
+NPM_CONFIG_PREFIX="$new" npm install -g \
+  --allow-scripts=@anthropic-ai/claude-code \
+  @openai/codex@latest @anthropic-ai/claude-code@latest || status=$?
 
 # npm keeps every package it downloads in its cache (~/.npm) and never
 # evicts anything. These daily updates grew it to ~6 GB per container,
@@ -12,4 +48,21 @@ npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest || status=$
 # So empty it after every update, whether or not the update succeeded.
 npm cache clean --force >/dev/null 2>&1 || true
 
-exit "$status"
+if [ "$status" -ne 0 ] \
+   || ! "$new/bin/claude" --version >/dev/null 2>&1 \
+   || ! "$new/bin/codex" --version >/dev/null 2>&1; then
+  rm -rf "$new"
+  echo "update-ai-clis: install failed or did not run; keeping the current one" >&2
+  exit 1
+fi
+
+touch "$new/.verified"
+# Containers made before this change have a real directory here.
+[ -L "$prefix" ] || rm -rf "$prefix"
+ln -sfn "$new" "$prefix.tmp"
+mv -T "$prefix.tmp" "$prefix"
+touch "$stamp"
+
+# Keep the previous version too, so sessions still running from it don't
+# lose files out from under them; delete anything older.
+ls -1d "$versions"/*/ | sort -r | tail -n +3 | xargs -r rm -rf
